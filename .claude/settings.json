@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Skill",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "DIR=\"${CLAUDE_PROJECT_DIR:-$(pwd)}/.claude\"; mkdir -p \"$DIR\"; { printf '%s\\t' \"$(date '+%Y-%m-%dT%H:%M:%S')\"; jq -r '.tool_input.skill // \"unknown\"'; } >> \"$DIR/skill-usage.log\"",
+            "statusMessage": "스킬 호출 기록 중..."
+          }
+        ]
+      }
+    ]
+  }
+}
