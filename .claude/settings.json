@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Skill",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/record-skill-usage.py\"",
+            "statusMessage": "스킬 호출 기록 중..."
+          }
+        ]
+      }
+    ]
+  }
+}
