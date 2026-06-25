@@ -25,7 +25,7 @@ description: 프로젝트 커밋 규칙(Conventional Commits 접두사 사용, C
 git status
 git diff            # unstaged 변경
 git diff --staged   # 이미 staged된 변경
-git log --oneline -5 # 기존 메시지 톤 참고
+git log -5           # 기존 메시지 톤 참고
 ```
 
 ### 2단계 — 스테이징
