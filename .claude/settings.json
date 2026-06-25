@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Skill",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.skill // \"unknown\"' | { read -r s; printf '%s\\t%s\\n' \"$(date '+%Y-%m-%d %H:%M:%S')\" \"$s\" >> \"$CLAUDE_PROJECT_DIR/.claude/skill-usage.log\"; } 2>/dev/null || true",
+            "statusMessage": "스킬 호출 기록 중..."
+          }
+        ]
+      }
+    ]
+  }
+}
