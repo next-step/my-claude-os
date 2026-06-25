@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "DIR=\"${CLAUDE_PROJECT_DIR:-$(pwd)}/.claude\"; mkdir -p \"$DIR\"; P=$(jq -r '.prompt // \"\"'); NAME=$(printf '%s' \"$P\" | sed -nE 's#^[[:space:]]*/([A-Za-z0-9_-]+).*#\\1#p'); [ -n \"$NAME\" ] && [ -d \"$DIR/skills/$NAME\" ] && printf '%s\\t%s\\n' \"$(date '+%Y-%m-%dT%H:%M:%S')\" \"$NAME\" >> \"$DIR/skill-usage.log\"",
+            "command": "DIR=\"${CLAUDE_PROJECT_DIR:-$(pwd)}/.claude\"; mkdir -p \"$DIR\"; P=$(jq -r '.prompt // \"\"'); NAME=$(printf '%s' \"$P\" | sed -nE 's#^[[:space:]]*/([A-Za-z0-9_-]+).*#\\1#p'); if [ -n \"$NAME\" ] && [ -d \"$DIR/skills/$NAME\" ]; then printf '%s\\t%s\\n' \"$(date '+%Y-%m-%dT%H:%M:%S')\" \"$NAME\" >> \"$DIR/skill-usage.log\"; fi; exit 0",
             "statusMessage": "스킬 호출 기록 중..."
           }
         ]
