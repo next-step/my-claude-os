@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Skill",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/skill-counter.sh\"",
+            "statusMessage": "스킬 호출 기록 중...",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
