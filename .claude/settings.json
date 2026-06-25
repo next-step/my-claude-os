@@ -12,6 +12,17 @@
           }
         ]
       }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.prompt // \"\"' | grep -oE '^/[a-zA-Z][a-zA-Z0-9:_-]*' | head -1 | sed 's|^/||' | { read -r s; [ -n \"$s\" ] && printf '%s\\t%s\\n' \"$(date '+%Y-%m-%d %H:%M:%S')\" \"$s\" >> \"$CLAUDE_PROJECT_DIR/.claude/skill-usage.log\"; } 2>/dev/null || true",
+            "statusMessage": "슬래시 명령 기록 중..."
+          }
+        ]
+      }
     ]
   }
 }
