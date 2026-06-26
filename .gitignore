@@ -12,6 +12,3 @@
 
 # Notion 자격증명 (비밀값 — 절대 커밋 금지)
 .claude/data/notion.json
-
-# 로컬 할일 백업 (Notion 이관 전 데이터)
-.claude/data/tasks.json.bak
