@@ -226,6 +226,89 @@ CSS 클래스:
 
 ---
 
+## Bootstrap 변수 오버라이드
+
+Bootstrap 기본 색상(`bg-success`, `text-primary` 등)이 디자인 시스템 색상과 일치하도록 오버라이드한다.
+이 선언을 `style.css` `:root`에 추가하면 Bootstrap 유틸리티 클래스와 디자인 시스템 색상이 자동 동기화된다.
+
+```css
+:root {
+  --bs-success:     #22C55E;   /* --color-success와 동일 */
+  --bs-success-rgb: 34, 197, 94;
+  --bs-primary:     #3B82F6;   /* --color-primary와 동일 */
+  --bs-primary-rgb: 59, 130, 246;
+}
+```
+
+**적용 배경:**
+Bootstrap 기본 `--bs-success`(#198754)와 디자인 시스템 `--color-success`(#22C55E)가 달라서
+통계 화면 등에서 하드코딩 색상값이 사용되는 문제가 발생했다.
+이 오버라이드 한 줄로 `bg-success`, `text-success`, `border-success` 등 전체가 통일된다.
+
+---
+
+### 진행 카운트 텍스트 (completion-count)
+
+홈 화면 진행 바 옆에 표시되는 "N/M 완료" 텍스트.
+
+```
+[████████░░░░]  3/5 완료
+```
+
+CSS 클래스: `.completion-count`
+```css
+.completion-count {
+  font-size: 13px;
+  color: var(--color-text-2);
+  white-space: nowrap;    /* 좁은 화면에서 줄바꿈 방지 */
+  flex-shrink: 0;
+}
+```
+
+---
+
+### 날짜 네비게이션 버튼 (nav-date-btn)
+
+기록 화면의 이전/다음 날짜 이동 버튼. 44px 터치 타겟 확보.
+
+```
+[  <  ]   2026년 6월 27일 (토)   [  >  ]
+```
+
+CSS 클래스: `.nav-date-btn`
+```css
+.nav-date-btn {
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 var(--space-md);
+}
+```
+
+비활성(미래 날짜 이동 불가) 시 `aria-disabled="true"` + `tabindex="-1"` 추가.
+
+---
+
+### 바 차트 레이블 (chart-label)
+
+통계 화면의 7일 바 차트 날짜/퍼센트 레이블.
+
+CSS 클래스: `.chart-label`
+```css
+.chart-label {
+  font-size: 11px;           /* 접근성: 최소 11px (WCAG 권고 기준) */
+  color: var(--color-text-2);
+  line-height: 1;
+}
+```
+
+**설계 이유:** 0.65rem(약 10.4px)은 WCAG 가독성 기준 미달.
+7개 막대가 좁은 공간에 있더라도 최소 11px을 유지한다.
+
+---
+
 ## 아이콘
 
 Bootstrap Icons (CDN 로드됨) 사용. 사이즈: `fs-4` (1.5rem) 또는 `fs-5` (1.25rem).
@@ -238,8 +321,12 @@ Bootstrap Icons (CDN 로드됨) 사용. 사이즈: `fs-4` (1.5rem) 또는 `fs-5`
 | 다음 날짜 | `bi-chevron-right` |
 | 통계 | `bi-bar-chart` |
 | 루틴 | `bi-list-check` |
-| 빈 상태 | `bi-inbox` |
-| 삭제 | `bi-trash` |
+| 빈 상태 — 루틴 없음 | `bi-calendar-plus` |
+| 빈 상태 — 기록 없음 | `bi-calendar-x` |
+| 빈 상태 — 통계 없음 | `bi-bar-chart` |
+| 빈 상태 — `bi-inbox` 사용 금지 | 이메일 맥락 아이콘, Habit Tracker와 맥락 불일치 |
+| 삭제(그만하기) | `bi-trash` (아이콘만 사용 시) |
+| 루틴 관리 아이템 삭제 | 아이콘 사용 금지, 텍스트 버튼 "그만하기" 사용 |
 
 ---
 
