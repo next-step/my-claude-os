@@ -1,10 +1,2 @@
-{"pid": "", "t": "18:05", "op": "edit", "path": "/Users/kangminseong/repository/my-claude-code-os/.claude/settings.json", "from": "\"command\": \"bash .claude/hooks/auto-commit.sh\",", "to": "\"command\": \"bash /Users/kangminseong/repository/my-claude-code-os/.claude/hooks/…"}
-{"pid": "", "t": "18:05", "op": "bash", "desc": "Gradle Wrapper 생성", "cmd": "gradle wrapper --gradle-version 8.7 2>&1 | tail -5"}
-{"pid": "", "t": "18:06", "op": "bash", "desc": "gradle/spring CLI 설치 여부 확인", "cmd": "which java && ls ~/Library/Application\\ Support/spring/ 2>/dev/null || echo \"spring cli 없음\" && brew …"}
-{"pid": "181020", "t": "18:10", "op": "bash", "desc": "Gradle Wrapper 생성", "cmd": "gradle wrapper --gradle-version 8.7"}
-{"pid": "181020", "t": "18:10", "op": "bash", "desc": "gradlew 생성 확인", "cmd": "ls /Users/kangminseong/repository/my-claude-code-os/habit-tracker/gradlew"}
-{"pid": "181020", "t": "18:13", "op": "bash", "desc": "Spring Boot 앱 실행", "cmd": "./gradlew bootRun 2>&1"}
-{"pid": "181020", "t": "18:13", "op": "bash", "desc": "20초 후 부팅 로그 확인", "cmd": "sleep 20 && tail -30 /private/tmp/claude-501/-Users-kangminseong-repository-my-claude-code-os/6497f6…"}
-{"pid": "181505", "t": "18:18", "op": "bash", "desc": "홈 페이지 HTML 응답 확인", "cmd": "curl -s http://localhost:8080 | head -80"}
-{"pid": "181505", "t": "18:18", "op": "bash", "desc": "루틴 관리 페이지 확인", "cmd": "curl -s http://localhost:8080/routines | grep -A5 \"card\\|form\\|error\\|alert\" | head -40"}
-{"pid": "181505", "t": "18:18", "op": "bash", "desc": "각 페이지 HTTP 상태코드 확인", "cmd": "curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8080/stats && echo \"\" && curl -s -o /dev/nul…"}
+{"pid": "", "t": "22:35", "op": "bash", "desc": "habit-tracker/.claude 디렉토리 삭제", "cmd": "rm -rf /Users/kangminseong/repository/my-claude-code-os/habit-tracker/.claude && echo \"삭제 완료\" && ls …"}
+{"pid": "", "t": "22:35", "op": "edit", "path": "/Users/kangminseong/repository/my-claude-code-os/.gitignore", "from": "# 자동 생성 로그 (런타임 데이터, 버전 관리 불필요)\n.claude/logs/", "to": "# 자동 생성 로그 (런타임 데이터, 버전 관리 불필요)\n.claude/logs/\n\n# 서브 디렉토리에 훅이 잘못 생성한 .claude (절대경…"}

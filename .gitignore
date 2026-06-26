@@ -11,3 +11,6 @@ habit-tracker/out/
 
 # 자동 생성 로그 (런타임 데이터, 버전 관리 불필요)
 .claude/logs/
+
+# 서브 디렉토리에 훅이 잘못 생성한 .claude (절대경로 훅으로 방지됨)
+habit-tracker/.claude/
