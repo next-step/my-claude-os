@@ -1,3 +1,10 @@
+# Spring Boot 빌드 아티팩트
+habit-tracker/build/
+habit-tracker/.gradle/
+habit-tracker/bin/
+habit-tracker/data/
+habit-tracker/out/
+
 # Claude 로컬 설정 (민감 정보 포함 가능)
 .claude/settings.local.json
 .claude/skill-usage.json

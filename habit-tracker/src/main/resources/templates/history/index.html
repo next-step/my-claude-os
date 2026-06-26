@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('기록')}"></head>
+<body class="bg-light">
+
+<nav th:replace="~{fragments/layout :: nav('history')}"></nav>
+
+<div class="container py-4">
+
+    <!-- 날짜 네비게이션 -->
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <a th:href="@{/history(date=${prev})}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-chevron-left"></i>
+        </a>
+        <div class="text-center">
+            <h5 class="mb-0 fw-bold"
+                th:text="${#temporals.format(target, 'yyyy년 M월 d일 (E)', new java.util.Locale('ko'))}"></h5>
+            <small class="text-primary" th:if="${isToday}">오늘</small>
+        </div>
+        <a th:href="@{/history(date=${next})}" class="btn btn-outline-secondary btn-sm"
+           th:classappend="${isToday} ? ' disabled' : ''">
+            <i class="bi bi-chevron-right"></i>
+        </a>
+    </div>
+
+    <!-- 해당 날짜 루틴 -->
+    <div th:if="${#lists.isEmpty(routines)}" class="text-center py-5 text-muted">
+        <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+        <p class="mt-2">이 날 예정된 루틴이 없습니다.</p>
+    </div>
+
+    <div class="d-flex flex-column gap-2" th:if="${!#lists.isEmpty(routines)}">
+        <div th:each="r : ${routines}"
+             class="card border-0 shadow-sm routine-card"
+             th:classappend="${r.completed} ? ' completed' : ''">
+            <div class="card-body d-flex align-items-center py-3">
+                <form th:action="@{/check/{id}(id=${r.id})}" method="post" class="me-3">
+                    <input type="hidden" name="returnDate" th:value="${target}"/>
+                    <button type="submit" class="check-btn"
+                            th:disabled="${isToday == false and r.completed == false}">
+                        <i class="bi fs-4"
+                           th:classappend="${r.completed} ? 'bi-check-circle-fill text-success' : 'bi-circle text-secondary'"></i>
+                    </button>
+                </form>
+                <div class="flex-grow-1">
+                    <div class="fw-semibold"
+                         th:text="${r.name}"
+                         th:classappend="${r.completed} ? 'text-muted text-decoration-line-through' : ''"></div>
+                    <small class="text-muted" th:text="${r.description}"
+                           th:if="${r.description != null and !r.description.isEmpty()}"></small>
+                </div>
+                <span th:if="${r.completed}" class="badge bg-success-subtle text-success">완료</span>
+                <span th:if="${!r.completed}" class="badge bg-secondary-subtle text-secondary">미완료</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

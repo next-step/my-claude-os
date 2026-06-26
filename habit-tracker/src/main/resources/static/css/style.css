@@ -1,0 +1,41 @@
+/* 루틴 카드 */
+.routine-card {
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    border-left: 4px solid #0d6efd;
+}
+
+.routine-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+}
+
+.routine-card.completed {
+    border-left-color: #198754;
+    opacity: 0.85;
+}
+
+/* 체크 버튼 */
+.check-btn {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.check-btn:focus {
+    outline: none;
+}
+
+.check-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.4;
+}
+
+/* 반응형 여백 조정 */
+@media (max-width: 576px) {
+    .container {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+}

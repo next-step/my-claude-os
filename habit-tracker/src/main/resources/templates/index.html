@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('오늘')}"></head>
+<body class="bg-light">
+
+<nav th:replace="~{fragments/layout :: nav('today')}"></nav>
+
+<div class="container py-4">
+
+    <!-- 헤더 -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="mb-0 fw-bold">오늘의 루틴</h4>
+            <small class="text-muted" th:text="${#temporals.format(today, 'yyyy년 M월 d일 (E)', new java.util.Locale('ko'))}"></small>
+        </div>
+        <div class="text-center">
+            <div class="display-6 fw-bold"
+                 th:classappend="${completionRate == 100} ? 'text-success' : (${completionRate >= 50} ? 'text-primary' : 'text-secondary')"
+                 th:text="${completionRate} + '%'">0%</div>
+            <small class="text-muted">완료율</small>
+        </div>
+    </div>
+
+    <!-- 진행 바 -->
+    <div class="progress mb-4" style="height: 8px;" th:if="${!#lists.isEmpty(todayRoutines)}">
+        <div class="progress-bar bg-success" role="progressbar"
+             th:style="'width: ' + ${completionRate} + '%'"
+             th:attr="aria-valuenow=${completionRate}"></div>
+    </div>
+
+    <!-- 루틴 없을 때 -->
+    <div th:if="${#lists.isEmpty(todayRoutines)}" class="text-center py-5">
+        <i class="bi bi-inbox text-muted" style="font-size: 3rem;"></i>
+        <p class="text-muted mt-3">오늘 예정된 루틴이 없습니다.</p>
+        <a th:href="@{/routines}" class="btn btn-primary">
+            <i class="bi bi-plus-circle me-1"></i>루틴 추가
+        </a>
+    </div>
+
+    <!-- 루틴 목록 -->
+    <div class="d-flex flex-column gap-2" th:if="${!#lists.isEmpty(todayRoutines)}">
+        <div th:each="r : ${todayRoutines}"
+             class="card border-0 shadow-sm routine-card"
+             th:classappend="${r.completed} ? ' completed' : ''">
+            <div class="card-body d-flex align-items-center py-3">
+
+                <!-- 체크 버튼 -->
+                <form th:action="@{/check/{id}(id=${r.id})}" method="post" class="me-3">
+                    <button type="submit" class="check-btn"
+                            th:title="${r.completed} ? '완료 취소' : '완료로 표시'">
+                        <i class="bi fs-4"
+                           th:classappend="${r.completed} ? 'bi-check-circle-fill text-success' : 'bi-circle text-secondary'"></i>
+                    </button>
+                </form>
+
+                <!-- 루틴 정보 -->
+                <div class="flex-grow-1">
+                    <div class="fw-semibold"
+                         th:text="${r.name}"
+                         th:classappend="${r.completed} ? 'text-muted text-decoration-line-through' : ''"></div>
+                    <small class="text-muted" th:text="${r.description}" th:if="${r.description != null and !r.description.isEmpty()}"></small>
+                </div>
+
+                <!-- 완료 배지 -->
+                <span class="badge bg-success-subtle text-success ms-2" th:if="${r.completed}">완료</span>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

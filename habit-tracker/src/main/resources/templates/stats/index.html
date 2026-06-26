@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('통계')}"></head>
+<body class="bg-light">
+
+<nav th:replace="~{fragments/layout :: nav('stats')}"></nav>
+
+<div class="container py-4">
+    <h4 class="fw-bold mb-4">통계</h4>
+
+    <!-- 7일 요약 -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white fw-semibold">
+            <i class="bi bi-calendar-week me-1 text-primary"></i>최근 7일 완료율
+        </div>
+        <div class="card-body">
+            <div class="d-flex gap-2 align-items-end" style="height: 100px;">
+                <div th:each="entry : ${rates7}"
+                     class="flex-fill d-flex flex-column align-items-center">
+                    <small class="text-muted mb-1" th:text="${entry.value} + '%'" style="font-size: 0.65rem;"></small>
+                    <div class="w-100 rounded-top"
+                         th:style="'height: ' + ${entry.value} + '%; min-height: 4px; background-color: ' +
+                                   (${entry.value == 100} ? '#198754' : (${entry.value >= 50} ? '#0d6efd' : '#dee2e6')) + ';'"></div>
+                    <small class="text-muted mt-1" style="font-size: 0.65rem;"
+                           th:text="${#temporals.format(entry.key, 'M/d')}"></small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 30일 목록 -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white fw-semibold">
+            <i class="bi bi-calendar-month me-1 text-primary"></i>최근 30일 상세
+        </div>
+        <div class="list-group list-group-flush">
+            <div th:each="entry : ${rates30}"
+                 class="list-group-item d-flex align-items-center py-2">
+                <span class="text-muted me-3" style="min-width: 70px;"
+                      th:text="${#temporals.format(entry.key, 'M월 d일 (E)', new java.util.Locale('ko'))}"></span>
+                <div class="flex-grow-1 progress mx-2" style="height: 8px;">
+                    <div class="progress-bar"
+                         th:classappend="${entry.value == 100} ? 'bg-success' : (${entry.value >= 50} ? 'bg-primary' : 'bg-secondary')"
+                         th:style="'width: ' + ${entry.value} + '%'"></div>
+                </div>
+                <span class="fw-semibold ms-2" style="min-width: 40px; text-align: right;"
+                      th:text="${entry.value} + '%'"></span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
