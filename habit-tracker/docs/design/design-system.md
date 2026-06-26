@@ -30,6 +30,15 @@
   --color-text-1:         #111827;   /* 주요 텍스트 */
   --color-text-2:         #6B7280;   /* 보조 텍스트 */
   --color-text-3:         #D1D5DB;   /* 비활성/플레이스홀더 */
+
+  /* XP & 레벨 시스템 */
+  --color-xp-green-start: #4ADE80;   /* 프로그레스 바 그라데이션 시작 (라임) */
+  --color-xp-green-end:   #16A34A;   /* 프로그레스 바 그라데이션 끝 (딥 그린) */
+  --color-legend-gold:    #F59E0B;   /* 전설 레벨 골드 (--color-warning 재사용) */
+  --color-legend-gold-bg: #FEF3C7;   /* 전설 카드 배경 틴트 */
+  --color-legend-text:    #B45309;   /* "최고 레벨 달성" 텍스트 (골드 다크) */
+  --color-banner-start:   #F59E0B;   /* 레벨업 배너 그라데이션 시작 (골드) */
+  --color-banner-end:     #FB923C;   /* 레벨업 배너 그라데이션 끝 (오렌지) */
 }
 ```
 
@@ -143,6 +152,77 @@ box-shadow: 0 4px 12px rgba(0,0,0,0.10);
 ```
 
 Bootstrap `shadow-sm` 사용 후 커스텀 호버 추가.
+
+---
+
+### XP 바 (xp-bar)
+
+레벨 정보와 XP 진행률을 한 컴포넌트에 담는 홈 화면 전용 카드.
+
+```
+일반 상태 (Lv.1–6):
+┌─────────────────────────────────────────┐
+│ [이모지 2rem]  [레벨명] Lv.[N]           │  ← .xp-bar-header
+│                                         │
+│ [████████████░░░░░░░░░░░░░░░░░░░░░░░░] │  ← .xp-progress-track + .xp-progress-fill
+│                                [N / M XP]│  ← .xp-text
+└─────────────────────────────────────────┘
+  border-left: 4px solid [레벨별 색상]
+
+만렙 상태 (Lv.7 전설):
+╔═════════════════════════════════════════╗
+║ [⚡ 2.5rem]  전설 Lv.7                  ║  ← .xp-bar-header
+║          ★ 최고 레벨 달성 ★              ║  ← .xp-legend-text (shimmer 애니)
+╚═════════════════════════════════════════╝
+  border: 2px solid var(--color-legend-gold)
+  background: linear-gradient(135deg, #FFFBEB, var(--color-legend-gold-bg))
+```
+
+CSS 클래스:
+- `.xp-bar-container` — 전체 카드 래퍼
+- `.xp-bar-header` — 이모지 + 레벨명 + Lv.N 행
+- `.xp-level-emoji` — 이모지 (font-size: 2rem)
+- `.xp-progress-track` — 바 배경 트랙 (height: 8px, border-radius: 999px)
+- `.xp-progress-fill` — fill 영역, `background: linear-gradient(90deg, var(--color-xp-green-start), var(--color-xp-green-end))`, `transition: width 0.4s ease-out`
+- `.xp-text` — "N / M XP" 보조 텍스트 (13px, --color-text-2, 우측 정렬)
+- `.xp-bar-legend` — 만렙 전용 shimmer 카드 (일반 상태 대체)
+- `.xp-legend-text` — "★ 최고 레벨 달성 ★" (font-weight: 700, color: var(--color-legend-text))
+
+레벨별 좌측 보더 색상 매핑:
+| 레벨 | 색상 값 |
+|------|--------|
+| 1 🌱 | `#86EFAC` |
+| 2 🌿 | `#4ADE80` |
+| 3 🌳 | `#22C55E` |
+| 4 🌲 | `#16A34A` |
+| 5 👨‍🌾 | `#15803D` |
+| 6 🏕️ | `#14532D` |
+| 7 ⚡ | `var(--color-legend-gold)` (전체 테두리로 대체) |
+
+---
+
+### 레벨업 배너 (level-up-banner)
+
+레벨업 발생 시 홈 화면 최상단에 조건부 표시되는 축하 배너.
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  [이전이모지] → [새이모지]  [새레벨명]에 도달했어요!   [✕] │
+└─────────────────────────────────────────────────────────┘
+background: linear-gradient(90deg, var(--color-banner-start), var(--color-banner-end))
+color: #FFFFFF
+```
+
+CSS 클래스:
+- `.level-up-banner` — 배너 전체, `transform: translateY(-100%)` 초기값
+- `.level-up-banner.visible` — `transform: translateY(0)`, `transition: transform 0.3s ease-out`
+- `.level-up-banner.fading` — `opacity: 0`, `transition: opacity 0.5s ease-in`
+- `.banner-close` — 닫기 버튼, 최소 44×44px 터치 타겟
+
+동작 규칙:
+- Thymeleaf `th:if="${leveledUp}"` 로 DOM 자체를 조건부 렌더
+- 5초(4.5s 후 fade 시작 + 0.5s fade) 후 자동 DOM 제거
+- 닫기 클릭 시 타이머 취소 후 즉시 제거
 
 ---
 
