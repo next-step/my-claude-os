@@ -1,9 +1,11 @@
 package com.habit.tracker.service;
 
+import com.habit.tracker.domain.Level;
 import com.habit.tracker.domain.Routine;
 import com.habit.tracker.domain.RoutineCheck;
 import com.habit.tracker.repository.RoutineCheckRepository;
 import com.habit.tracker.repository.RoutineRepository;
+import com.habit.tracker.service.dto.CheckLevelUpResult;
 import com.habit.tracker.service.dto.RoutineForm;
 import com.habit.tracker.service.dto.TodayRoutineDto;
 import org.junit.jupiter.api.BeforeEach;
@@ -24,8 +26,10 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
+import static org.mockito.Mockito.never;
 
 /**
  * RoutineService 단위 테스트
@@ -44,6 +48,9 @@ class RoutineServiceTest {
 
     @Mock
     private RoutineCheckRepository routineCheckRepository;
+
+    @Mock
+    private UserStatsService userStatsService;
 
     @InjectMocks
     private RoutineService routineService;
@@ -267,6 +274,9 @@ class RoutineServiceTest {
                     .willReturn(Optional.of(allDaysRoutine1));
             given(routineCheckRepository.findByRoutineIdAndCheckDate(1L, MONDAY))
                     .willReturn(Optional.empty());
+            // 전체 완료 보너스 체크 시 사용 (기본값 반환 — 보너스 조건 미성립)
+            given(routineRepository.findByActiveTrueOrderByCreatedAtAsc())
+                    .willReturn(List.of());
 
             // when
             routineService.toggleCheck(1L, MONDAY);
@@ -310,6 +320,8 @@ class RoutineServiceTest {
                     .willReturn(Optional.of(allDaysRoutine1));
             given(routineCheckRepository.findByRoutineIdAndCheckDate(1L, MONDAY))
                     .willReturn(Optional.of(existingCheck));
+            given(routineRepository.findByActiveTrueOrderByCreatedAtAsc())
+                    .willReturn(List.of());
 
             // when
             routineService.toggleCheck(1L, MONDAY);
@@ -545,6 +557,185 @@ class RoutineServiceTest {
             for (int i = 0; i < keys.size() - 1; i++) {
                 assertThat(keys.get(i)).isBefore(keys.get(i + 1));
             }
+        }
+    }
+
+    // ── toggleCheck XP 적립 ───────────────────────────────────────────────────
+
+    @Nested
+    @DisplayName("toggleCheck — XP 적립 및 레벨업 감지")
+    class ToggleCheckXpAward {
+
+        private static final LocalDate TODAY = LocalDate.now();
+
+        @Test
+        @DisplayName("루틴 완료 시 xpAwarded=false 이면 XP 10 을 지급하고 xpAwarded=true 로 변경한다")
+        void 완료시_xpAwarded_false이면_10XP_지급() {
+            // given — 기존 미완료 체크 기록, xpAwarded=false
+            RoutineCheck existing = RoutineCheck.of(allDaysRoutine1, TODAY, false);
+            assertThat(existing.isXpAwarded()).isFalse(); // 초기값 확인
+
+            given(routineRepository.findById(1L)).willReturn(Optional.of(allDaysRoutine1));
+            given(routineCheckRepository.findByRoutineIdAndCheckDate(1L, TODAY))
+                    .willReturn(Optional.of(existing));
+            given(routineRepository.findByActiveTrueOrderByCreatedAtAsc()).willReturn(List.of());
+
+            // when
+            routineService.toggleCheck(1L, TODAY);
+
+            // then
+            then(userStatsService).should().awardXp(10);
+            assertThat(existing.isXpAwarded()).isTrue();
+        }
+
+        @Test
+        @DisplayName("루틴 완료 시 xpAwarded=true 이면 XP 를 추가 지급하지 않는다 — 중복 방지")
+        void 완료시_xpAwarded_true이면_XP_미지급() {
+            // given — 이미 XP 받은 체크 기록 (xpAwarded=true, 현재 completed=false 로 미완료 상태)
+            RoutineCheck existing = RoutineCheck.of(allDaysRoutine1, TODAY, false);
+            existing.setXpAwarded(true);
+
+            given(routineRepository.findById(1L)).willReturn(Optional.of(allDaysRoutine1));
+            given(routineCheckRepository.findByRoutineIdAndCheckDate(1L, TODAY))
+                    .willReturn(Optional.of(existing));
+            given(routineRepository.findByActiveTrueOrderByCreatedAtAsc()).willReturn(List.of());
+
+            // when
+            routineService.toggleCheck(1L, TODAY);
+
+            // then — awardXp 절대 호출되지 않는다
+            then(userStatsService).should(never()).awardXp(anyInt());
+        }
+
+        @Test
+        @DisplayName("루틴 체크 해제(완료→미완료) 시 XP 를 지급하지 않는다")
+        void 체크해제시_XP_미지급() {
+            // given — 이미 완료된 체크 기록
+            RoutineCheck existing = RoutineCheck.of(allDaysRoutine1, TODAY, true);
+
+            given(routineRepository.findById(1L)).willReturn(Optional.of(allDaysRoutine1));
+            given(routineCheckRepository.findByRoutineIdAndCheckDate(1L, TODAY))
+                    .willReturn(Optional.of(existing));
+
+            // when
+            routineService.toggleCheck(1L, TODAY);
+
+            // then — 해제 시 XP 차감/지급 없음
+            then(userStatsService).should(never()).awardXp(anyInt());
+        }
+
+        @Test
+        @DisplayName("오늘 예정 루틴 전체 완료 시 보너스 50XP 를 지급한다")
+        void 전체완료시_보너스50XP_지급() {
+            // given — 루틴 1개, 완료 처리 후 전체 완료 상태
+            RoutineCheck existing = RoutineCheck.of(allDaysRoutine1, TODAY, false);
+            RoutineCheck completedAfterToggle = RoutineCheck.of(allDaysRoutine1, TODAY, true);
+
+            given(routineRepository.findById(1L)).willReturn(Optional.of(allDaysRoutine1));
+            given(routineCheckRepository.findByRoutineIdAndCheckDate(1L, TODAY))
+                    .willReturn(Optional.of(existing));
+
+            // 전체 완료 체크: 루틴 1개, 완료됨 (toggleCheck 이후 completed=true 로 변경됨)
+            given(routineRepository.findByActiveTrueOrderByCreatedAtAsc())
+                    .willReturn(List.of(allDaysRoutine1));
+            // 완료 체크 재조회 시 완료 상태 반환
+            given(routineCheckRepository.findByRoutineIdAndCheckDate(1L, TODAY))
+                    .willReturn(Optional.of(existing)); // existing 은 toggle 후 completed=true 로 변경됨
+
+            given(userStatsService.isTodayBonusAwarded()).willReturn(false);
+
+            // when
+            routineService.toggleCheck(1L, TODAY);
+
+            // then — 10XP + 50XP 보너스 지급
+            then(userStatsService).should().awardXp(10);
+            then(userStatsService).should().awardXp(50);
+            then(userStatsService).should().markTodayBonusAwarded();
+        }
+
+        @Test
+        @DisplayName("오늘 전체 완료 보너스를 이미 받았으면 보너스 50XP 를 추가 지급하지 않는다")
+        void 보너스_이미수령시_추가지급_없음() {
+            // given
+            RoutineCheck existing = RoutineCheck.of(allDaysRoutine1, TODAY, false);
+
+            given(routineRepository.findById(1L)).willReturn(Optional.of(allDaysRoutine1));
+            given(routineCheckRepository.findByRoutineIdAndCheckDate(1L, TODAY))
+                    .willReturn(Optional.of(existing));
+            given(routineRepository.findByActiveTrueOrderByCreatedAtAsc())
+                    .willReturn(List.of(allDaysRoutine1));
+            given(userStatsService.isTodayBonusAwarded()).willReturn(true); // 이미 받음
+
+            // when
+            routineService.toggleCheck(1L, TODAY);
+
+            // then — 10XP 는 지급되지만 50XP 보너스는 없음
+            then(userStatsService).should().awardXp(10);
+            then(userStatsService).should(never()).awardXp(50);
+        }
+
+        @Test
+        @DisplayName("오늘 예정 루틴이 0개이면 전체 완료 보너스를 지급하지 않는다")
+        void 오늘루틴_0개이면_보너스_미지급() {
+            // given — 새 체크 기록 (없던 상태에서 생성)
+            given(routineRepository.findById(1L)).willReturn(Optional.of(allDaysRoutine1));
+            given(routineCheckRepository.findByRoutineIdAndCheckDate(1L, TODAY))
+                    .willReturn(Optional.empty());
+            // 오늘 스케줄된 루틴 없음 (빈 리스트)
+            given(routineRepository.findByActiveTrueOrderByCreatedAtAsc()).willReturn(List.of());
+
+            // when
+            routineService.toggleCheck(1L, TODAY);
+
+            // then — 10XP 는 지급, 보너스는 없음
+            then(userStatsService).should().awardXp(10);
+            then(userStatsService).should(never()).awardXp(50);
+        }
+
+        @Test
+        @DisplayName("레벨업 발생 시 leveledUp=true 와 레벨 정보를 담은 결과를 반환한다")
+        void 레벨업_발생시_결과에_leveledUp_true() {
+            // given — XP 지급 전 SPROUT, 지급 후 SAPLING (레벨업)
+            RoutineCheck existing = RoutineCheck.of(allDaysRoutine1, TODAY, false);
+
+            given(routineRepository.findById(1L)).willReturn(Optional.of(allDaysRoutine1));
+            given(routineCheckRepository.findByRoutineIdAndCheckDate(1L, TODAY))
+                    .willReturn(Optional.of(existing));
+            given(routineRepository.findByActiveTrueOrderByCreatedAtAsc()).willReturn(List.of());
+
+            // XP 지급 전: SPROUT, 지급 후: SAPLING
+            given(userStatsService.getCurrentLevel())
+                    .willReturn(Level.SPROUT)   // 첫 번째 호출 (지급 전)
+                    .willReturn(Level.SAPLING); // 두 번째 호출 (지급 후)
+
+            // when
+            CheckLevelUpResult result = routineService.toggleCheck(1L, TODAY);
+
+            // then
+            assertThat(result.isLeveledUp()).isTrue();
+            assertThat(result.getPrevLevel()).isEqualTo(Level.SPROUT);
+            assertThat(result.getNewLevel()).isEqualTo(Level.SAPLING);
+        }
+
+        @Test
+        @DisplayName("레벨업 없으면 leveledUp=false 를 반환한다")
+        void 레벨업_없으면_false() {
+            // given
+            RoutineCheck existing = RoutineCheck.of(allDaysRoutine1, TODAY, false);
+
+            given(routineRepository.findById(1L)).willReturn(Optional.of(allDaysRoutine1));
+            given(routineCheckRepository.findByRoutineIdAndCheckDate(1L, TODAY))
+                    .willReturn(Optional.of(existing));
+            given(routineRepository.findByActiveTrueOrderByCreatedAtAsc()).willReturn(List.of());
+
+            // 레벨 변동 없음 (SPROUT → SPROUT)
+            given(userStatsService.getCurrentLevel()).willReturn(Level.SPROUT);
+
+            // when
+            CheckLevelUpResult result = routineService.toggleCheck(1L, TODAY);
+
+            // then
+            assertThat(result.isLeveledUp()).isFalse();
         }
     }
 }

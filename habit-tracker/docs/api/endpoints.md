@@ -18,6 +18,50 @@
 | `todayRoutines` | `List<RoutineDto>` | 오늘 요일에 해당하는 활성 루틴 목록 |
 | `today` | `LocalDate` | 오늘 날짜 |
 | `completionRate` | `int` | 오늘 완료율 (0–100) |
+| `userLevel` | `Level` | 현재 레벨 Enum |
+| `xpInCurrentLevel` | `int` | 현재 레벨 시작 XP 기준 진행 XP |
+| `xpToNextLevel` | `int` | 다음 레벨까지 남은 XP (만렙 LEGEND 이면 0) |
+| `xpProgressPercent` | `int` | 현재 레벨 구간 내 진행률 0–100 (만렙이면 100) |
+| `leveledUp` | `boolean` | 직전 체크로 레벨업 발생 여부 (플래시, 기본값 false) |
+| `newLevel` | `Level` (nullable) | 레벨업 시 새 레벨 Enum (플래시) |
+| `prevLevel` | `Level` (nullable) | 레벨업 시 이전 레벨 Enum (플래시) |
+| `newLevelName` | `String` (nullable) | 새 레벨 한글 이름 (플래시) |
+| `newLevelEmoji` | `String` (nullable) | 새 레벨 이모지 (플래시) |
+| `prevLevelName` | `String` (nullable) | 이전 레벨 한글 이름 (플래시) |
+| `prevLevelEmoji` | `String` (nullable) | 이전 레벨 이모지 (플래시) |
+
+**Level Enum 필드 (Thymeleaf 접근):**
+```
+${userLevel.number}      Integer  레벨 번호 (1–7)
+${userLevel.name}        String   열거형 상수명 (SPROUT, SAPLING … LEGEND)  ← enum .name()
+${userLevel.getName()}   String   레벨 한글 이름 (새싹, 묘목 … 전설)
+${userLevel.emoji}       String   이모지 (🌱 … ⚡)
+${userLevel.minXp}       int      해당 레벨 최소 누적 XP
+```
+
+**Thymeleaf 분기 포인트:**
+```html
+<!-- 일반 레벨 XP 바 (Lv.1–6) -->
+<div th:unless="${userLevel.name == 'LEGEND'}">
+  <span th:text="${userLevel.emoji}"></span>
+  <span th:text="${userLevel.getName()}"></span> Lv.<span th:text="${userLevel.number}"></span>
+  <div class="xp-progress-fill" th:attr="data-percent=${xpProgressPercent}"></div>
+  <span th:text="${xpInCurrentLevel}"></span> / <span th:text="${xpToNextLevel}"></span> XP
+</div>
+
+<!-- 만렙 카드 (Lv.7 LEGEND) -->
+<div th:if="${userLevel.name == 'LEGEND'}" class="xp-bar-legend">
+  ★ 최고 레벨 달성 ★
+</div>
+
+<!-- 레벨업 배너 (플래시 속성) -->
+<div th:if="${leveledUp}" class="level-up-banner">
+  <span th:text="${prevLevelEmoji}"></span> →
+  <span th:text="${newLevelEmoji}"></span>
+  <span th:text="|${newLevelName}에 도달했어요!|"></span>
+  <button class="banner-close">✕</button>
+</div>
+```
 
 **RoutineDto 필드:**
 ```
