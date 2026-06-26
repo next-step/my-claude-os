@@ -1,0 +1,31 @@
+name: OS 동작 테스트
+
+# 언제 도나:
+#   - main 으로의 PR
+#   - 모든 브랜치 push
+# 무엇을 도나:
+#   결정적 계층(L1 정적 검증 + L2 훅 단위)만 실행한다.
+#   L3 스모크는 Notion 자격증명과 claude CLI 가 필요해 CI 에서는 돌리지 않는다
+#   (로컬에서 `./run-tests.sh` 또는 `./run-tests.sh l3` 로 수동 실행).
+
+on:
+  push:
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Node 설치
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: jq 설치 확인
+        run: jq --version   # ubuntu-latest 에 기본 포함
+
+      - name: L1 + L2 실행
+        run: ./run-tests.sh l1 l2
