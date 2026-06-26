@@ -51,14 +51,22 @@ git add <파일경로>  # 또는 특정 파일만
 
 ### 2. 커밋 메시지 작성
 
-`git diff --cached`로 실제 변경 내용을 읽고 제목과 본문을 모두 작성한다.
+**반드시 아래 순서로 실행한다. diff를 읽지 않고 커밋 메시지를 작성하는 것은 금지다.**
+
+```bash
+git diff --cached        # 스테이징된 변경 내용 전체를 읽는다
+git diff --cached --stat # 변경된 파일 목록 확인
+```
+
+diff 출력을 분석한 뒤 제목과 본문을 실제 변경 내용으로 채운다.
+플레이스홀더(`<제목>`, `<본문>` 등)를 그대로 사용하는 것은 금지다.
 
 **형식:**
 ```
 <type>(<scope>): <제목 — 50자 이내, 무엇을 왜 했는지 핵심만>
 
 <본문 — 변경된 파일별로 구체적인 내용을 bullet로 서술>
-- 어떤 파일을: 무슨 이유로 어떻게 변경했는지
+- 파일명: 무슨 이유로 어떻게 변경했는지
 - 삭제·추가된 기능이 있으면 명시
 
 Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
@@ -72,6 +80,23 @@ Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
 | `refactor` | 리팩토링 |
 | `chore` | 설정·빌드 |
 
+**scope 결정 기준:**
+
+| 변경 경로 | scope |
+|-----------|-------|
+| `.claude/hooks/` | `hook` |
+| `.claude/skills/` | `skill` |
+| `.claude/agents/` | `agent` |
+| `.claude/settings.json` | `config` |
+| `CLAUDE.md` | `claude` |
+| `.gitignore` | `config` |
+| `habit-tracker/src/main/java/` | 변경된 도메인명 (예: `routine`, `check`) |
+| `habit-tracker/src/main/resources/templates/` | `ui` |
+| `habit-tracker/src/main/resources/static/` | `ui` |
+| `habit-tracker/src/test/` | `test` |
+| `habit-tracker/docs/` | `docs` |
+| `habit-tracker/build.gradle` | `build` |
+
 **제목 작성 원칙:**
 - 50자 이내, 현재형 동사로 시작 ("추가", "수정", "제거")
 - "무엇을 왜"가 드러나야 함 — "파일 수정" (❌) → "토큰 절감을 위해 로그 포맷을 JSONL로 전환" (✅)
@@ -79,7 +104,7 @@ Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
 **본문 작성 원칙:**
 - 변경 파일이 3개 이하면 파일별로 1줄씩 설명
 - 변경 파일이 많으면 영역(hook/skill/config)별로 묶어 설명
-- "왜 변경했는지" 이유를 포함
+- "왜 변경했는지" 이유를 반드시 포함
 
 초안을 제시하고 사용자가 수정하거나 그대로 사용할 수 있게 한다.
 
@@ -121,23 +146,41 @@ git push -u origin <브랜치명>
 
 ### 1. 전체 스테이징 + 커밋 메시지 자동 결정
 
-`git diff --cached`로 변경 내용을 읽고 제목·본문을 모두 작성해 즉시 커밋한다. 사용자에게 묻지 않는다.
+사용자에게 묻지 않지만, **반드시 아래 순서를 지킨다.**
+
+```bash
+# 1) 먼저 무엇이 바뀌었는지 읽는다
+git add -A
+git diff --cached        # 실제 변경 내용 분석 (필수)
+git diff --cached --stat # 변경 파일 목록 확인
+```
+
+diff 출력을 분석해 제목과 본문을 실제 내용으로 채운 뒤 커밋한다.
+플레이스홀더를 그대로 사용하는 것은 금지다.
+
+scope 결정 기준 (일반 모드와 동일):
 
 | 변경 경로 | scope |
 |-----------|-------|
 | `.claude/hooks/` | `hook` |
 | `.claude/skills/` | `skill` |
+| `.claude/agents/` | `agent` |
 | `.claude/settings.json` | `config` |
 | `CLAUDE.md` | `claude` |
 | `.gitignore` | `config` |
+| `habit-tracker/src/main/java/` | 변경된 도메인명 (예: `routine`, `check`) |
+| `habit-tracker/src/main/resources/templates/` | `ui` |
+| `habit-tracker/src/main/resources/static/` | `ui` |
+| `habit-tracker/src/test/` | `test` |
+| `habit-tracker/docs/` | `docs` |
+| `habit-tracker/build.gradle` | `build` |
 
 ```bash
-git add -A
 git commit -m "$(cat <<'EOF'
-<type>(<scope>): <제목 — 50자 이내, 무엇을 왜 했는지 핵심>
+<diff 분석 결과로 채운 실제 제목 — 50자 이내>
 
-<본문 — 변경 내용을 bullet로 구체적으로 서술>
-- 변경 파일: 변경 이유와 내용
+<diff 분석 결과로 채운 실제 본문>
+- 파일명: 변경 이유와 내용
 
 Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
 EOF
