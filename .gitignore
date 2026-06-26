@@ -1,0 +1,8 @@
+# IDE
+.idea/
+
+# oh-my-claudecode 세션 상태 (로컬 런타임 데이터)
+.omc/
+
+# 스킬 호출 로그 (로컬 런타임 데이터)
+.claude/skill-invocations.log
