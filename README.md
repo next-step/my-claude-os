@@ -22,6 +22,7 @@
 | `/done [키워드]` | 미완료(draft·planned) 항목을 골라 `done`으로 완료 처리 | 키워드 부분 일치 또는 목록 선택(복수) |
 | `/remind` | 미처리 draft를 조회해 리마인더 알럿을 **텔레그램으로 발송** (없으면 조용히 종료) | Cron으로 매일 저녁 자동 호출 가능 |
 | `/remind-when` | remind 자동 알럿이 **몇 시에 실행되는지** crontab에서 조회 | 예: `매일 오전 10시 58분` |
+| `/sync-readme` | 실제 `.claude/` 상태(스킬·에이전트·디렉터리)를 스캔해 **이 README를 최신화** | 스킬 추가/삭제 후 문서 자동 동기화 |
 
 > 💡 **자동 캡처 힌트**: `/capture`를 직접 치지 않아도, 프롬프트에 할일 뉘앙스("~해야지", "~사야" 등)가 감지되면 `/capture` 실행을 제안받습니다. (자동 저장이 아니라 제안만 — 결정은 사용자 몫)
 
@@ -89,6 +90,7 @@
 │   │   └── _interviewer.md        # 구체화 인터뷰 에이전트 (로컬)
 │   ├── done/SKILL.md              # /done 오케스트레이터
 │   ├── remind-when/SKILL.md       # /remind-when (crontab 시각 조회)
+│   ├── sync-readme/SKILL.md       # /sync-readme (실제 상태 스캔 → README 갱신)
 │   ├── remind/
 │   │   ├── SKILL.md               # /remind 오케스트레이터
 │   │   └── _alert.md              # 알럿 메시지 에이전트 (로컬)
@@ -97,7 +99,8 @@
 │       ├── notion-agent.md        # 할일 저장소 에이전트 (공유, Notion API)
 │       └── telegram-agent.md      # 알럿 발송 에이전트 (공유)
 ├── hooks/
-│   └── detect-todo.js             # 자연어 할일 감지 → /capture 제안 힌트
+│   ├── detect-todo.js             # 자연어 할일 감지 → /capture 제안 힌트
+│   └── remind-cron.sh             # crontab이 매일 호출하는 /remind 실행 스크립트
 └── data/
     ├── notion.json                # Notion 토큰·DB ID (비밀값, git 제외)
     └── telegram.json              # 텔레그램 봇 토큰·chat_id (비밀값, git 제외)
