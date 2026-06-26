@@ -41,15 +41,19 @@ description: |
 
 ### 1단계: 로그 읽기
 
+CWD가 어느 서브 디렉토리여도 동작하도록 git 루트를 기준으로 경로를 잡는다.
+
 ```bash
-cat .claude/logs/prompts/$(date +%Y-%m-%d).jsonl 2>/dev/null || echo ""
-cat .claude/logs/sessions/$(date +%Y-%m-%d).jsonl 2>/dev/null || echo ""
+ROOT=$(git rev-parse --show-toplevel)
+cat "$ROOT/.claude/logs/prompts/$(date +%Y-%m-%d).jsonl" 2>/dev/null || echo ""
+cat "$ROOT/.claude/logs/sessions/$(date +%Y-%m-%d).jsonl" 2>/dev/null || echo ""
 date +%Y-%m-%d-%H-%M
 ```
 
 ### 2단계: 요약 파일 작성
 
 `pid`로 프롬프트와 작업을 묶어 아래 구조로 Write 도구로 저장한다.
+저장 경로는 반드시 절대경로(`$ROOT/.claude/logs/sessions/YYYY-MM-DD-HH-MM-summary.md`)로 지정한다.
 
 ```markdown
 # 작업 로그 — YYYY-MM-DD HH:MM

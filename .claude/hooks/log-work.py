@@ -10,8 +10,14 @@ import json, os, sys
 from datetime import datetime
 
 TRACKED = {"Agent", "Write", "Edit", "Bash"}
+
+# 스크립트 위치 기준 절대경로 — CWD에 무관하게 항상 같은 위치에 로그를 쓴다
+HOOKS_DIR = os.path.dirname(os.path.abspath(__file__))   # .claude/hooks/
+CLAUDE_DIR = os.path.dirname(HOOKS_DIR)                  # .claude/
+LOGS_DIR = os.path.join(CLAUDE_DIR, "logs")              # .claude/logs/
+
 # 이 경로에 대한 변경은 재귀 로깅을 막기 위해 스킵
-LOGS_DIR_ABS = os.path.abspath(os.path.join(".claude", "logs"))
+LOGS_DIR_ABS = os.path.abspath(LOGS_DIR)
 
 def flat(v, n=120):
     """다양한 응답 형식에서 텍스트를 추출하고 n자로 자른다."""
@@ -46,7 +52,7 @@ if op in {"Write", "Edit"}:
         sys.exit(0)
 
 # 현재 prompt-ID 읽기 (없으면 빈 문자열)
-pid_file = os.path.join(".claude", "logs", ".current_pid")
+pid_file = os.path.join(LOGS_DIR, ".current_pid")
 try:
     pid = open(pid_file).read().strip()
 except Exception:
@@ -78,7 +84,7 @@ elif op == "Bash":
         "cmd": flat(inp.get("command", ""), 100),
     })
 
-log_path = os.path.join(".claude", "logs", "sessions", f"{now.strftime('%Y-%m-%d')}.jsonl")
+log_path = os.path.join(LOGS_DIR, "sessions", f"{now.strftime('%Y-%m-%d')}.jsonl")
 os.makedirs(os.path.dirname(log_path), exist_ok=True)
 with open(log_path, "a", encoding="utf-8") as f:
     f.write(json.dumps(entry, ensure_ascii=False) + "\n")
