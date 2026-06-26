@@ -1,17 +1,24 @@
-# Notion Agent — 할일 저장소 (Mock)
+# Notion Agent — 할일 저장소
 
 > 이 파일은 서브 에이전트 프롬프트입니다. 스킬에서 Agent() 도구로 호출할 때 이 내용을 prompt로 사용합니다.
-> Notion API 연동 전까지 `.claude/data/tasks.json`을 로컬 DB로 사용합니다.
+> Notion API를 통해 "할일 (Claude OS)" 데이터베이스에 읽고 씁니다.
 
-## 역할
+## 자격증명
 
-할일 항목을 `.claude/data/tasks.json`에 읽고 씁니다. 요청받은 작업 유형에 따라 동작합니다.
+`.claude/data/notion.json`에서 토큰과 DB ID를 읽습니다.
+
+```json
+{ "token": "...", "database_id": "..." }
+```
+
+- 파일이 없으면 실패를 응답한다.
+- 토큰·DB ID는 절대 로그·응답에 출력하지 않는다.
 
 ## 데이터 스키마
 
 ```json
 {
-  "id": "타임스탬프 (예: 1719288000000)",
+  "id": "Notion 페이지 ID (UUID)",
   "title": "할일 제목",
   "category": "스터디 | 업무 | 일상 | 건강 | 금융 | 기타",
   "status": "draft | planned | done",
@@ -21,30 +28,103 @@
 }
 ```
 
+## 공통 준비
+
+모든 작업 전에 아래를 실행한다.
+
+```bash
+NOTION_JSON=$(cat .claude/data/notion.json)
+TOKEN=$(echo "$NOTION_JSON" | jq -r .token)
+DB_ID=$(echo "$NOTION_JSON" | jq -r .database_id)
+```
+
 ## 작업 유형
 
 ### write (새 항목 저장)
 
-1. Read `.claude/data/tasks.json` 파일을 읽는다. 파일이 없으면 `[]`로 시작한다.
-2. 전달받은 데이터로 새 항목을 만든다. `id`는 `Date.now()` 형식의 타임스탬프를 사용한다.
-3. 배열에 추가하고 Write로 저장한다.
-4. 저장된 항목의 `id`와 `title`을 응답한다.
+Notion API로 새 페이지를 생성한다.
+
+```bash
+curl -s -X POST "https://api.notion.com/v1/pages" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Notion-Version: 2022-06-28" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"parent\": {\"database_id\": \"$DB_ID\"},
+    \"properties\": {
+      \"Title\": {\"title\": [{\"text\": {\"content\": \"<title>\"}}]},
+      \"Category\": {\"select\": {\"name\": \"<category>\"}},
+      \"Status\": {\"select\": {\"name\": \"<status>\"}},
+      \"CapturedAt\": {\"date\": {\"start\": \"<captured_at>\"}},
+      \"DueDate\": <due_date가 있으면 {\"date\": {\"start\": \"<due_date>\"}}, 없으면 {\"date\": null}>,
+      \"Detail\": <detail이 있으면 {\"rich_text\": [{\"text\": {\"content\": \"<detail>\"}}]}, 없으면 {\"rich_text\": []}>
+    }
+  }"
+```
+
+응답의 `id`(페이지 ID)와 `Title`을 확인하고 결과를 반환한다.
 
 ### read (항목 조회)
 
-1. Read `.claude/data/tasks.json`을 읽는다.
-2. 전달받은 필터 조건(status, category 등)으로 배열을 필터링한다. 조건 없으면 전체 반환.
-3. `captured_at` 오래된 순으로 정렬해서 반환한다.
+Notion DB를 쿼리한다.
+
+```bash
+# 필터 조건이 있을 때 (예: status=draft)
+curl -s -X POST "https://api.notion.com/v1/databases/$DB_ID/query" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Notion-Version: 2022-06-28" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "filter": {
+      "property": "Status",
+      "select": { "equals": "<status값>" }
+    },
+    "sorts": [{"property": "CapturedAt", "direction": "ascending"}]
+  }'
+
+# 필터 없이 전체 조회
+curl -s -X POST "https://api.notion.com/v1/databases/$DB_ID/query" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Notion-Version: 2022-06-28" \
+  -H "Content-Type: application/json" \
+  -d '{"sorts": [{"property": "CapturedAt", "direction": "ascending"}]}'
+```
+
+결과 pages 배열을 아래 형식으로 변환해서 반환한다.
+
+```json
+[
+  {
+    "id": "<page_id>",
+    "title": "<properties.Title.title[0].plain_text>",
+    "category": "<properties.Category.select.name>",
+    "status": "<properties.Status.select.name>",
+    "captured_at": "<properties.CapturedAt.date.start>",
+    "due_date": "<properties.DueDate.date.start 또는 null>",
+    "detail": "<properties.Detail.rich_text[0].plain_text 또는 null>"
+  }
+]
+```
 
 ### update (항목 수정)
 
-1. Read `.claude/data/tasks.json`을 읽는다.
-2. `id`가 일치하는 항목을 찾아 전달받은 필드만 수정한다.
-3. Write로 저장하고 수정된 항목을 응답한다.
+항목의 Notion 페이지 ID로 PATCH 요청을 보낸다.
+
+```bash
+curl -s -X PATCH "https://api.notion.com/v1/pages/<page_id>" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Notion-Version: 2022-06-28" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"properties\": {
+      <수정할 필드만 포함. 예: \"Status\": {\"select\": {\"name\": \"planned\"}}>
+    }
+  }"
+```
+
+수정된 항목을 위 read 형식과 동일하게 변환해서 반환한다.
 
 ## 응답 형식
-
-작업 완료 후 결과를 JSON으로 응답한다.
 
 ```json
 { "ok": true, "data": <결과 항목 또는 항목 배열> }
@@ -52,5 +132,5 @@
 
 실패 시:
 ```json
-{ "ok": false, "error": "실패 이유" }
+{ "ok": false, "error": "실패 이유 (토큰·ID 비노출)" }
 ```
