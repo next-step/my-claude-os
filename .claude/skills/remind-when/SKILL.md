@@ -48,7 +48,7 @@ crontab -l 2>/dev/null | awk '
     if (!found) {
       print "⚠️ remind 자동 실행이 등록되어 있지 않아요."
       print ""
-      print "  /schedule \"/remind\" 매일 저녁 21:00  처럼 등록하거나,"
+      print "  /schedule \"/remind\" 매일 17:00  처럼 등록하거나,"
       print "  crontab -e 로 .claude/hooks/remind-cron.sh 실행을 추가하세요."
     }
   }
