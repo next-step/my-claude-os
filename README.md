@@ -1,5 +1,13 @@
-# 할일 관리 OS — 사용방법
+# 할일 관리 OS
 
+## 개발 배경
+개발자는 할 일을 아이폰 메모장에 1차로 정리한 후 옵시디언에서 분류, 다시 일정을 개별적으로 작성하고 있습니다.   
+할 일을 완벽하게 작성해야한다는 생각때문에 작성하다가 지치거나, 혹은 나중에 작성해야지 라는 생각으로 까먹을때가 많았습니다.   
+작성한다고해도 언제 할지 리마인드 하는것을 잊어 놓치는 일도 있었습니다. (예를 들어 집에 갈때 저녁 반찬용으로 깻잎 사가기 등)  
+어떻게 하면 머릿속에 떠오르는 할일들을 빠르게 백로그로 저장하고, 실행력을 높일까 고민하다가 할일 관리 OS를 개발하였습니다.   
+목표는 최소한의 노력으로 머릿속의 할일을 모두 기록하고, 시간이 날때 구체화함으로써 현재하는 일의 흐름이 끊기지 않도록 하는것입니다. 
+
+## 사용방법
 이 프로젝트는 **할일을 캡처 → 구체화 → 리마인드 → 완료** 하는 개인 할일 관리 OS입니다.
 키워드 하나만 던지면 AI가 분류·저장하고, 나중에 구체화 인터뷰로 계획을 잡고, 매일 저녁 미처리 항목을 알려주고, 끝낸 일은 완료 처리합니다.
 데이터는 **Notion DB**에 저장되어 iPad·iPhone·MacBook 어디서나 같은 할일에 접근할 수 있습니다.
@@ -78,6 +86,23 @@
 > `Interviewer`·`Alert`처럼 한 스킬에서만 쓰는 일꾼은 해당 스킬 폴더 안에 둔다.
 > 덕분에 알림 채널을 슬랙·이메일로 바꿔도 `telegram-agent.md`만 교체하면 되고, 저장소를 바꿔도 `notion-agent.md`만 교체하면 된다.
 
+## 훅(Hook) 종류
+
+훅은 **사용자가 스킬을 직접 치지 않아도 동작을 자동으로 트리거**하는 장치다. 에이전트가 "위임받아 일하는 일꾼"이라면, 훅은 "알아서 일을 거는 방아쇠"다.
+
+| 훅 | 위치 | 트리거 | 하는 일 |
+|----|------|--------|---------|
+| detect-todo | `hooks/detect-todo.js` | Claude Code `UserPromptSubmit` 이벤트 (세션 내부) | 프롬프트에 할일 뉘앙스("~사야", "~해야지") 감지 시 `/capture` 제안 힌트 주입 (자동 저장 X, 제안만) |
+| remind-cron | `hooks/remind-cron.sh` | crontab 매일 17:00 (세션 외부) | `claude -p "/remind"` 실행 → 미처리 draft를 텔레그램으로 알럿 |
+| telegram-listener | `hooks/telegram-listener.sh` | crontab 1분 폴링 (세션 외부) | 폰에서 봇에 보낸 `/capture` 등 슬래시 명령을 받아 `claude -p`로 실행 → 결과를 폰으로 회신 |
+
+> **세션 내부 훅 vs 외부 스케줄 훅**
+> `detect-todo`는 Claude Code의 **네이티브 훅**이다. 대화 세션 안에서 사용자가 입력하는 순간 끼어들어 힌트를 주입한다 — 내가 무언가 칠 때만 동작한다.
+> `remind-cron`·`telegram-listener`는 **crontab이 세션 밖에서** 주기적으로 `claude -p`(헤드리스)를 띄우는 방식이다. 터미널을 보고 있지 않아도 — 정해진 시각이든, 폰에서 메시지가 오든 — 자동으로 돈다. (단, 실행 주체가 로컬 머신이라 맥이 켜져 있어야 한다.)
+> 한 줄 요약: **detect-todo는 "들어올 때 돕고", cron 훅들은 "내가 없을 때 일한다".**
+
+> 🔒 **인바운드 보안**: `telegram-listener`는 사실상 텔레그램 메시지로 로컬 `claude`를 실행시키는 통로다. 그래서 ① 내 `chat_id`가 보낸 메시지만 처리(화이트리스트), ② 미리 등록한 슬래시 명령(`/capture`)만 실행, ③ 사용자 텍스트를 셸로 재평가하지 않음(eval 미사용) — 3종 안전장치를 둔다.
+
 ## 디렉터리 구조
 
 ```
@@ -99,11 +124,13 @@
 │       ├── notion-agent.md        # 할일 저장소 에이전트 (공유, Notion API)
 │       └── telegram-agent.md      # 알럿 발송 에이전트 (공유)
 ├── hooks/
-│   ├── detect-todo.js             # 자연어 할일 감지 → /capture 제안 힌트
-│   └── remind-cron.sh             # crontab이 매일 호출하는 /remind 실행 스크립트
+│   ├── detect-todo.js             # UserPromptSubmit 훅: 자연어 할일 감지 → /capture 제안 힌트
+│   ├── remind-cron.sh             # crontab(매일 17:00)이 호출하는 /remind 실행 스크립트
+│   └── telegram-listener.sh       # crontab(1분 폴링) 인바운드 브리지: 폰의 슬래시 명령 → claude -p 실행
 └── data/
     ├── notion.json                # Notion 토큰·DB ID (비밀값, git 제외)
-    └── telegram.json              # 텔레그램 봇 토큰·chat_id (비밀값, git 제외)
+    ├── telegram.json              # 텔레그램 봇 토큰·chat_id (비밀값, git 제외)
+    └── telegram-offset.txt        # 텔레그램 폴링 오프셋 (런타임 상태, git 제외)
 ```
 
 ## 저장소: Notion 연동
