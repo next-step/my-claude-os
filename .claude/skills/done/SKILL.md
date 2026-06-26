@@ -2,7 +2,7 @@
 name: done
 description: 미완료(draft·planned) 할일을 골라 done 상태로 완료 처리한다.
 user-invocable: true
-allowed-tools: Read Agent AskUserQuestion
+allowed-tools: Read Bash Agent AskUserQuestion
 ---
 
 # /done 스킬 — 할일 완료 처리 오케스트레이터
@@ -23,24 +23,20 @@ capture(생성) → plan(구체화) → **done(완료)** 로 이어지는 상태
 
 ### Step 1: 미완료 항목 조회
 
-> **오케스트레이터 패턴 포인트**
-> notion-agent의 read는 단일 status 필터만 지원한다.
-> "아직 done이 아닌 것 전체"가 필요하므로, **필터 없이 전체를 읽고
-> 오케스트레이터가 `status != done`으로 걸러낸다.** 책임 분리의 실제 사례:
-> 에이전트는 단순 조회만, 복합 조건 판단은 오케스트레이터가.
+> **속도 + 책임 분리 포인트**
+> 조회는 결정론적이므로 `notion.sh`를 Bash로 직접 호출한다(콜드 스타트 제거).
+> `notion.sh read`는 단일 status 필터만 지원하므로, **인자 없이 전체를 읽고
+> 오케스트레이터가 `status != done`으로 걸러낸다.** 단순 조회는 헬퍼가,
+> 복합 조건 판단은 오케스트레이터가 맡는다.
 
-1. Read `.claude/skills/_shared/notion-agent.md` 를 읽는다.
-2. 아래 데이터를 붙여 Agent 도구를 호출한다.
+1. Bash로 아래를 실행한다. (인자 없이 전체 조회)
 
-```
----
-## 요청
-작업 유형: read
-필터: 없음 (전체 조회)
+```bash
+.claude/skills/_shared/notion.sh read
 ```
 
-3. 반환된 배열에서 `status`가 `done`이 **아닌** 항목만 남겨 `pending` 변수에 저장한다.
-4. `pending`이 비어 있으면: "완료 처리할 항목이 없어요. 모두 끝냈거나, `/capture`로 할일을 추가해보세요." 출력 후 종료.
+2. 반환된 배열에서 `status`가 `done`이 **아닌** 항목만 남겨 `pending` 변수에 저장한다.
+3. `pending`이 비어 있으면: "완료 처리할 항목이 없어요. 모두 끝냈거나, `/capture`로 할일을 추가해보세요." 출력 후 종료.
 
 ---
 
@@ -72,26 +68,19 @@ AskUserQuestion으로 어떤 항목을 완료할지 선택받는다. (복수 선
 
 ### Step 3: done으로 업데이트 (루프)
 
-> **오케스트레이터 패턴 포인트**
-> plan이 `planned`로 바꾸듯, done은 같은 update 계약을 재사용한다.
-> notion-agent를 한 줄도 고치지 않고 status 값만 바꿔 호출하는 것이
-> 공유 에이전트 설계의 이점이다.
+> **공용 헬퍼 재사용 포인트**
+> plan이 `planned`로 바꾸듯, done은 같은 `notion.sh update` 계약을 재사용한다.
+> 헬퍼를 한 줄도 고치지 않고 status 값만 바꿔 호출하는 것이 공용 설계의 이점이다.
 
 선택된 각 항목에 대해 반복한다.
 
-1. Read `.claude/skills/_shared/notion-agent.md` 를 읽는다.
-2. 아래 데이터를 붙여 Agent 도구를 호출한다.
+1. Bash로 아래를 실행한다.
 
-```
----
-## 요청
-작업 유형: update
-데이터:
-  id: {항목 id}
-  status: done
+```bash
+printf '%s' '{"status":"done"}' | .claude/skills/_shared/notion.sh update {항목 id}
 ```
 
-3. 응답에서 업데이트 성공을 확인한다.
+2. 출력에서 `status`가 `done`으로 바뀐 것을 확인한다.
 
 ---
 

@@ -2,7 +2,7 @@
 name: remind
 description: draft 항목을 조회해 리마인더 알럿을 발송한다. CronCreate로 매일 저녁 자동 호출된다.
 user-invocable: true
-allowed-tools: Read Agent
+allowed-tools: Read Bash Agent
 ---
 
 # /remind 스킬 — 리마인더 오케스트레이터
@@ -23,22 +23,19 @@ allowed-tools: Read Agent
 
 ### Step 1: draft 항목 조회
 
-> **오케스트레이터 패턴 포인트**
-> capture·plan·remind 세 스킬 모두 같은 Notion Agent 파일을 참조한다.
-> 이것이 방식 B(공유 에이전트)의 핵심: 중복 없이 하나의 파일을 세 곳에서 재사용한다.
+> **속도 + 공용 헬퍼 포인트**
+> capture·plan·done·remind 모두 같은 `notion.sh` 헬퍼를 재사용한다. 중복 없이 하나의
+> 스크립트를 네 곳에서 쓴다. 조회는 결정론적이므로 Bash로 직접 호출한다.
+> remind는 매일 cron으로 자동 실행되므로, 서브 에이전트 콜드 스타트를 없애는 효과가 특히 크다.
 
-1. Read `.claude/skills/_shared/notion-agent.md` 를 읽는다.
-2. 아래 데이터를 붙여 Agent 도구를 호출한다.
+1. Bash로 아래를 실행한다.
 
-```
----
-## 요청
-작업 유형: read
-필터: { status: "draft" }
+```bash
+.claude/skills/_shared/notion.sh read draft
 ```
 
-3. 반환된 배열을 `drafts` 변수에 저장한다.
-4. `drafts`가 비어 있으면: 아무것도 출력하지 않고 조용히 종료. (알럿 없음)
+2. 출력(flat JSON 배열)을 `drafts` 변수에 저장한다.
+3. `drafts`가 비어 있으면: 아무것도 출력하지 않고 조용히 종료. (알럿 없음)
 
 ---
 

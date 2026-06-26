@@ -2,7 +2,7 @@
 name: capture
 description: 할일 키워드를 입력받아 AI로 카테고리를 분류하고 draft로 저장한다.
 user-invocable: true
-allowed-tools: Read Agent
+allowed-tools: Read Bash Agent
 ---
 
 # /capture 스킬 — 할일 캡처 오케스트레이터
@@ -47,25 +47,25 @@ allowed-tools: Read Agent
 
 ---
 
-### Step 3: Notion Agent 호출 (draft 저장)
+### Step 3: draft 저장 (직접 Bash)
 
-1. Read `.claude/skills/_shared/notion-agent.md` 를 읽는다.
-2. 읽은 내용 뒤에 아래 데이터를 붙여 Agent 도구를 호출한다.
+> **속도 포인트 — 저장은 결정론적이므로 직접 Bash로**
+> 분류(Step 2)는 판단이 필요해 Agent에게 맡기지만, 저장은 입력이 정해지면 끝나는 순수
+> API 호출이다. 공용 헬퍼 `notion.sh`를 Bash로 직접 호출해 서브 에이전트 콜드 스타트를 없앤다.
 
+1. flat JSON을 만들어 `notion.sh write`에 파이프한다. (`captured_at`은 현재 시각 ISO 8601)
+   `echo` 대신 `printf '%s'`를 쓴다 (zsh `echo`의 `\n` 변환으로 인한 JSON 깨짐 방지).
+
+```bash
+printf '%s' '{
+  "title": "{키워드}",
+  "category": "{category}",
+  "status": "draft",
+  "captured_at": "{현재 시각, ISO 8601}"
+}' | .claude/skills/_shared/notion.sh write
 ```
----
-## 요청
-작업 유형: write
-데이터:
-  title: {키워드}
-  category: {category}
-  status: draft
-  captured_at: {현재 시각, ISO 8601}
-  due_date: null
-  detail: null
-```
 
-3. Agent 응답에서 저장된 항목의 `id`를 확인한다.
+2. 출력(flat JSON)에서 저장된 항목의 `id`를 확인한다.
 
 ---
 

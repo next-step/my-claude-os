@@ -2,7 +2,7 @@
 name: plan
 description: draft 상태 할일을 오래된 순으로 꺼내 구체화 인터뷰를 진행하고 planned로 업데이트한다.
 user-invocable: true
-allowed-tools: Read Agent AskUserQuestion
+allowed-tools: Read Bash Agent AskUserQuestion
 ---
 
 # /plan 스킬 — 할일 구체화 오케스트레이터
@@ -21,22 +21,20 @@ allowed-tools: Read Agent AskUserQuestion
 
 ### Step 1: draft 항목 조회
 
-> **오케스트레이터 패턴 포인트**
-> 같은 Notion Agent를 읽기/쓰기 두 번 호출한다. 각 호출은 독립된 서브 에이전트이므로
-> 요청 데이터를 매번 명확히 전달해야 한다.
+> **속도 포인트 — 결정론적 호출은 서브 에이전트 대신 직접 Bash로**
+> draft 조회는 입력이 정해지면 출력도 정해지는 순수 API 호출이다. 여기에 Agent()를 띄우면
+> 콜드 스타트·프롬프트 재독해·curl 조립 추론만큼 첫 화면이 늦어진다. 공용 헬퍼
+> `notion.sh`를 Bash로 직접 호출해 그 오버헤드를 없앤다.
+> (추론·대화가 필요한 인터뷰 단계에서만 Agent를 쓴다 → Step 3.)
 
-1. Read `.claude/skills/_shared/notion-agent.md` 를 읽는다.
-2. 아래 데이터를 붙여 Agent 도구를 호출한다.
+1. Bash로 아래를 실행한다.
 
-```
----
-## 요청
-작업 유형: read
-필터: { status: "draft" }
+```bash
+.claude/skills/_shared/notion.sh read draft
 ```
 
-3. 반환된 배열을 `drafts` 변수에 저장한다.
-4. `drafts`가 비어 있으면: "구체화할 항목이 없어요. `/capture`로 할일을 추가해보세요." 출력 후 종료.
+2. 출력(flat JSON 배열)을 `drafts` 변수에 저장한다.
+3. `drafts`가 비어 있으면: "구체화할 항목이 없어요. `/capture`로 할일을 추가해보세요." 출력 후 종료.
 
 ---
 
@@ -81,24 +79,29 @@ AskUserQuestion으로 묻는다:
 title: {항목 제목}
 category: {카테고리}
 captured_at: {캡처 시각}
+today: {오늘 날짜, YYYY-MM-DD}
 ```
 
-3. Agent 응답(JSON)에서 `due_date`, `detail`을 추출한다.
+3. Agent 응답(JSON)에서 `recurrence`, `due_date`, `time`, `detail`을 추출한다.
 
-#### 3-2. Notion Agent 호출 (planned로 업데이트)
+#### 3-2. planned로 업데이트 (직접 Bash)
 
-1. Read `.claude/skills/_shared/notion-agent.md` 를 읽는다.
-2. 아래 데이터를 붙여 Agent 도구를 호출한다.
+> **속도 포인트** — 상태 업데이트도 결정론적이므로 `notion.sh`를 직접 호출한다.
 
-```
----
-## 요청
-작업 유형: update
-데이터:
-  id: {항목 id}
-  status: planned
-  due_date: {due_date}
-  detail: {detail}
+1. interviewer가 반환한 값으로 flat JSON을 만들어 `notion.sh update`에 파이프한다.
+   - `due_date`/`time`은 값이 없으면 따옴표 없이 `null`, 있으면 `"문자열"`로 넣는다.
+   - `detail`은 줄바꿈을 `\n`으로 이스케이프한다 (예: `"이유: ...\n방법: ..."`).
+   - **반드시 `echo`가 아니라 `printf '%s'`로 파이프한다.** zsh의 `echo`는 문자열 안의
+     `\n`을 실제 개행으로 바꿔 JSON을 깨뜨린다. `printf '%s'`는 `\n`을 그대로 보존한다.
+
+```bash
+printf '%s' '{
+  "status": "planned",
+  "recurrence": "{recurrence}",
+  "due_date": {due_date 또는 null},
+  "time": {time 또는 null},
+  "detail": "{detail}"
+}' | .claude/skills/_shared/notion.sh update {항목 id}
 ```
 
 ---
@@ -109,8 +112,12 @@ captured_at: {캡처 시각}
 ✅ 구체화 완료!
 
 처리한 항목: {N}개
-  • {title} → {due_date}
-  • {title} → {due_date}
+  • {title} → {일정 요약}
+  • {title} → {일정 요약}
 
 남은 draft: {M}개
 ```
+
+> **일정 요약** 표기 규칙
+> - `once`: `{due_date}{ time이 있으면 " " + time}`  (예: `2026-07-10 저녁`, 날짜 미정이면 `미정`)
+> - `daily`: `매일{ time이 있으면 " " + time}`  (예: `매일 저녁`, 시간 미정이면 `매일`)
