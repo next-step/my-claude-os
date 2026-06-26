@@ -1,0 +1,3 @@
+{"pid": "", "t": "18:05", "op": "edit", "path": "/Users/kangminseong/repository/my-claude-code-os/.claude/settings.json", "from": "\"command\": \"bash .claude/hooks/auto-commit.sh\",", "to": "\"command\": \"bash /Users/kangminseong/repository/my-claude-code-os/.claude/hooks/…"}
+{"pid": "", "t": "18:05", "op": "bash", "desc": "Gradle Wrapper 생성", "cmd": "gradle wrapper --gradle-version 8.7 2>&1 | tail -5"}
+{"pid": "", "t": "18:06", "op": "bash", "desc": "gradle/spring CLI 설치 여부 확인", "cmd": "which java && ls ~/Library/Application\\ Support/spring/ 2>/dev/null || echo \"spring cli 없음\" && brew …"}

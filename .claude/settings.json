@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 .claude/hooks/log-prompt.py",
+            "command": "python3 /Users/kangminseong/repository/my-claude-code-os/.claude/hooks/log-prompt.py",
             "timeout": 5
           }
         ]
@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 .claude/hooks/log-work.py",
+            "command": "python3 /Users/kangminseong/repository/my-claude-code-os/.claude/hooks/log-work.py",
             "timeout": 5
           }
         ]
@@ -28,7 +28,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/hooks/auto-commit.sh",
+            "command": "bash /Users/kangminseong/repository/my-claude-code-os/.claude/hooks/auto-commit.sh",
             "timeout": 30,
             "statusMessage": "변경사항 자동 커밋 중..."
           }
