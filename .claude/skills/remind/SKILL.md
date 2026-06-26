@@ -59,7 +59,29 @@ draft 항목 목록:
 {drafts 배열을 JSON으로 붙여넣기}
 ```
 
-3. Agent가 반환한 알럿 메시지를 그대로 출력한다.
+3. Agent가 반환한 알럿 메시지를 `alertMessage` 변수에 저장한다.
+
+---
+
+### Step 3: Telegram Agent 호출 (알럿 발송)
+
+> **오케스트레이터 패턴 포인트**
+> 메시지를 "만드는" 책임(Alert Agent)과 "보내는" 책임(Telegram Agent)을 분리한다.
+> 채널을 슬랙·이메일로 바꿔도 remind 본체는 그대로 두고 발송 에이전트만 교체하면 된다.
+> 이 단계 덕분에 클라우드 routine에서 실행돼도 알럿이 사용자 텔레그램으로 도착한다.
+
+1. Read `.claude/skills/_shared/telegram-agent.md` 를 읽는다.
+2. 아래 데이터를 붙여 Agent 도구를 호출한다.
+
+```
+---
+## 요청
+메시지:
+{alertMessage}
+```
+
+3. 발송 결과를 확인한다. 동시에 `alertMessage`를 터미널에도 그대로 출력한다.
+   (수동 실행 `/remind` 시 터미널에서도 바로 볼 수 있도록)
 
 ---
 
