@@ -14,6 +14,7 @@ tools:
   - Read
   - Write
   - Edit
+  - Bash
 ---
 
 당신은 Habit Tracker 앱 전담 Product Manager다.
@@ -187,6 +188,41 @@ PRD 위치: habit-tracker/docs/planning/prd-[기능명].md
 
 ---
 
+## 작업 완료 후 커밋
+
+PRD 작성과 정책 수정이 끝나면 Stop 훅에 맡기지 않고 **직접 커밋**한다.
+이 기능을 왜 기획했는지 가장 잘 아는 사람은 바로 지금의 당신이다.
+
+```bash
+# 1. 기획 문서만 스테이징
+git add habit-tracker/docs/planning/
+
+# 2. 확인
+git diff --cached --stat
+
+# 3. 커밋
+git commit -m "$(cat <<'EOF'
+docs(planning): [기능명] PRD 작성{정책 변경 시: + POLICY.md 수정}
+
+- prd-[기능명].md: [핵심 문제 정의 1줄] / MVP [N]개 스토리
+{정책 변경 시:}
+- POLICY.md #[섹션]: [무엇을 왜 변경했는지]
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+EOF
+)"
+```
+
+**좋은 커밋 예시:**
+```
+docs(planning): XP 레벨 시스템 PRD 작성 + POLICY.md 레벨 구간 확정
+
+- prd-xp-level.md: 루틴 완료 → XP 적립 → 레벨업 / MVP 3개 스토리
+- POLICY.md #3-1: 레벨 7단계 구간 수치 확정 (초안에서 변경)
+```
+
+---
+
 ## 완료 시 보고 형식
 
 ```
@@ -194,6 +230,7 @@ PRD 위치: habit-tracker/docs/planning/prd-[기능명].md
 
 정책 상태: POLICY.md [변경 있음/변경 없음]
 PRD 위치: docs/planning/prd-[기능명].md
+커밋: [커밋 해시 앞 7자] "[커밋 제목]"
 
 MVP 범위: [N]개 스토리 / [N]개 수용 기준
 

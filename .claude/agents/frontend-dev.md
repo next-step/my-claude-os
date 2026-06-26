@@ -86,6 +86,51 @@ cat habit-tracker/src/main/resources/static/css/style.css
 2. `src/main/resources/static/css/style.css` (필요시 수정)
 3. `src/main/resources/static/js/` (꼭 필요할 때만)
 
+## 작업 완료 후 커밋
+
+구현이 끝나면 Stop 훅에 맡기지 않고 **직접 커밋**한다.
+어떤 UX 의도로 이 템플릿을 만들었는지 가장 잘 아는 사람은 바로 지금의 당신이다.
+
+```bash
+# 1. 내가 변경한 파일만 스테이징
+git add [templates/, static/ 하위 변경 파일들]
+
+# 2. 스테이징 확인
+git diff --cached --stat
+
+# 3. 커밋
+git commit -m "$(cat <<'EOF'
+{type}(ui): {구현한 화면/기능 — 어떤 UX를 위해, 50자 이내}
+
+- {파일명}: {이 파일에서 무엇을 왜 변경했는지}
+- {파일명}: {이 파일에서 무엇을 왜 변경했는지}
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+EOF
+)"
+```
+
+**type 선택 기준:**
+
+| 작업 내용 | type |
+|---------|------|
+| 신규 화면 | feat |
+| 기존 화면 개선 | feat |
+| 버그 수정 | fix |
+| CSS/스타일만 수정 | style |
+| 리팩토링 | refactor |
+
+**좋은 커밋 예시:**
+```
+feat(ui): XP 바 + 레벨 표시 컴포넌트 구현 — 홈 화면 게이미피케이션 강화
+
+- home.html: 상단에 레벨·XP 진행 바 섹션 추가
+- style.css: xp-bar 애니메이션 (width transition 0.6s ease)
+- fragments/layout.html: XP 모델 속성 th:with로 전달
+```
+
+---
+
 ## 완료 시 보고 형식
 
 ```
@@ -98,6 +143,8 @@ cat habit-tracker/src/main/resources/static/css/style.css
 - [ ] 모바일 480px 이하 레이아웃
 - [ ] 빈 상태 UI
 - [ ] 폼 유효성 오류 표시
+
+커밋: [커밋 해시 앞 7자] "[커밋 제목]"
 
 → QA: 위 체크포인트 중심으로 검토 부탁드립니다
 ```
