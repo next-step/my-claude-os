@@ -13,6 +13,8 @@
 # Notion 자격증명 (비밀값 — 절대 커밋 금지)
 .claude/data/notion.json
 
-# 텔레그램 리스너 런타임 상태 (오프셋·락 — 로컬 전용)
+# 텔레그램 리스너 런타임 상태 (오프셋·로그 — 로컬 전용)
 .claude/data/telegram-offset.txt
+.claude/data/telegram-listener.log
+# (구) cron 폴링 시절 락 — long poll 데몬 전환으로 더는 생성 안 됨
 .claude/data/.telegram-listener.lock
