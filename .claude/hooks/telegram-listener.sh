@@ -89,6 +89,30 @@ handle_update() {
   [ -n "$cid" ] && [ "$cid" = "$MY_CHAT_ID" ] || return
   [ -n "$text" ] || return
 
+  # 슬래시(/)로 시작하지 않으면 → 직전 대화의 "답변"으로 보고 이어간다.
+  # 배경: /plan 같은 멀티턴 인터뷰 스킬은 "매일/일회성?"처럼 되묻는데,
+  #       텔레그램은 매 메시지를 독립 처리하므로 "일회성" 답이 새 명령으로 취급돼
+  #       화이트리스트에서 거절됐다. claude --continue로 직전 세션을 이어받아 해결.
+  # 보안: chat_id(#1)로 이미 소유자만 통과했고, eval 없이 인자로만 전달(#3)한다.
+  # --disallowedTools AskUserQuestion: -p(비대화) 모드에서 AskUserQuestion은 입력을
+  #   영원히 기다려 데몬 전체를 멈춘다. 막으면 모델이 질문을 "텍스트로 출력하고 종료"해
+  #   다음 메시지로 이어받을 수 있다.
+  # 프롬프트는 stdin(printf)으로 전달 — --disallowedTools가 가변 인자라 위치 인자
+  #   프롬프트를 삼키는 문제를 피한다.
+  if [ "${text:0:1}" != "/" ]; then
+    echo "[telegram-listener] 대화 이어가기: ${text}"
+    local cout crc
+    cout=$(printf '%s' "$text" | claude -p --continue --strict-mcp-config --disallowedTools AskUserQuestion 2>&1)
+    crc=$?
+    if [ "$crc" -eq 0 ]; then
+      send_tg "$cout"
+    else
+      send_tg "❌ 이어가기 실패 (code ${crc})
+${cout}"
+    fi
+    return
+  fi
+
   # 첫 토큰을 명령으로 파싱. 그룹용 "/capture@botname" 형태의 @봇이름은 제거.
   cmd="${text%% *}"
   cmd="${cmd%%@*}"
@@ -118,7 +142,12 @@ handle_update() {
       rc=$?
       ;;
     *)
-      out=$(claude -p "${cmd}${args:+ $args}" 2>&1)
+      # AskUserQuestion 차단 + stdin 프롬프트: 위 "이어가기"와 같은 이유.
+      # /plan 등 인터뷰형 스킬이 블로킹 없이 질문을 텍스트로 돌려주게 한다.
+      # --strict-mcp-config: MCP 서버를 0개로 로드해 콜드 스타트 ~7초를 줄인다.
+      #   텔레그램 스킬(capture/plan/list)은 MCP를 쓰지 않으므로(Notion도 notion.sh
+      #   셸 스크립트) 부작용 없이 인증·스킬만 살린 채 부팅만 가볍게 한다.
+      out=$(printf '%s' "${cmd}${args:+ $args}" | claude -p --strict-mcp-config --disallowedTools AskUserQuestion 2>&1)
       rc=$?
       ;;
   esac
