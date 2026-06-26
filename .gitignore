@@ -1,2 +1,3 @@
 .claude/skill-usage.json
 .claude/settings.local.json
+.claude/logs/.current_pid
