@@ -1,3 +1,6 @@
-.claude/skill-usage.json
+# Claude 로컬 설정 (민감 정보 포함 가능)
 .claude/settings.local.json
-.claude/logs/.current_pid
+.claude/skill-usage.json
+
+# 자동 생성 로그 (런타임 데이터, 버전 관리 불필요)
+.claude/logs/

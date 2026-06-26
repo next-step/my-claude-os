@@ -16,14 +16,19 @@ description: |
 
 ## 워크플로우
 
-### 1단계: 상태 및 diff 확인
+### 1단계: 상태 및 안전 검사
 
 ```bash
 git status --short
 git diff --stat HEAD
+# 민감 파일명 검사
+git diff --cached --name-only | grep -Ei '\.env$|\.env\.|secret|credential|password|private.key|id_rsa|\.pem$|token'
+# 내용 중 개인정보 패턴 검사
+git diff --cached | grep -E '^\+.*(password\s*=|api_key\s*=|secret\s*=|[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,})' | grep -v '^\+\+\+'
 ```
 
-변경사항이 없으면 "커밋할 변경사항이 없습니다."를 안내하고 종료.
+- 변경사항이 없으면 "커밋할 변경사항이 없습니다."를 안내하고 종료
+- 민감 파일/내용이 감지되면 **해당 파일을 제외하고 사용자에게 경고** 후 나머지만 커밋
 
 ### 2단계: 커밋 메시지 결정
 

@@ -1,10 +1,5 @@
 #!/bin/bash
-# Stop 훅 — Claude 작업 완료 시 변경사항을 자동으로 커밋한다. push는 하지 않는다.
-#
-# [재귀 방지]
-# Stop 훅 내부에서 `git commit`이 일어나도 새 Claude 세션이 생기지 않으므로 안전하다.
-# 단, 이 스크립트 자체가 `claude --print`를 호출하는 경우 중첩 Stop 훅이 실행될 수 있어
-# 락 파일로 재진입을 차단한다.
+# Stop 훅 — Claude 작업 완료 시 변경사항을 안전하게 자동 커밋한다. push는 하지 않는다.
 
 LOCK="/tmp/claude-os-auto-commit.lock"
 [ -f "$LOCK" ] && exit 0
@@ -18,38 +13,49 @@ git add -A 2>/dev/null
 git diff --cached --quiet && exit 0
 
 FILES=$(git diff --cached --name-only)
+
+# ── 안전 검사 ────────────────────────────────────────────────────────────
+# 민감 파일 패턴 — 이 파일이 스테이지에 있으면 커밋 전체를 중단한다
+DANGEROUS=$(echo "$FILES" | grep -Ei \
+    '\.env$|\.env\.|secret|credential|password|private.key|id_rsa|\.pem$|token' \
+    || true)
+
+if [ -n "$DANGEROUS" ]; then
+    # 스테이지 되돌리기
+    git reset HEAD -- $DANGEROUS 2>/dev/null
+    printf '{"systemMessage":"🚫 자동 커밋 중단 — 민감 파일 감지: %s"}' "$(echo "$DANGEROUS" | tr '\n' ' ')"
+    exit 0
+fi
+
+# 파일 내용 중 개인정보 패턴 검사 (staged diff 기준)
+SENSITIVE_CONTENT=$(git diff --cached | grep -E \
+    '^\+.*(password\s*=|api_key\s*=|secret\s*=|token\s*=|[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,})' \
+    | grep -v '^\+\+\+' || true)
+
+if [ -n "$SENSITIVE_CONTENT" ]; then
+    git reset 2>/dev/null
+    printf '{"systemMessage":"🚫 자동 커밋 중단 — 내용에 민감 정보 의심 패턴 감지. 수동으로 확인 후 커밋하세요."}'
+    exit 0
+fi
+
+# ── 커밋 메시지 추론 ─────────────────────────────────────────────────────
 FCOUNT=$(echo "$FILES" | grep -c .)
 
-# ── 변경 파일 패턴으로 type / scope 추론 ──────────────────────────────────
-TYPE="chore"
-SCOPE="misc"
+TYPE="chore"; SCOPE="misc"
 
-# 가장 많이 변경된 영역을 scope로 선택
-HOOK_CNT=$(echo "$FILES" | grep -c "hooks/" || true)
+HOOK_CNT=$(echo "$FILES"  | grep -c "hooks/"  || true)
 SKILL_CNT=$(echo "$FILES" | grep -c "skills/" || true)
-LOG_CNT=$(echo "$FILES"   | grep -c "logs/"   || true)
 
-if   [ "${SKILL_CNT:-0}" -gt "${HOOK_CNT:-0}" ] && [ "${SKILL_CNT:-0}" -gt "${LOG_CNT:-0}" ]; then
-    TYPE="feat"; SCOPE="skill"
-elif [ "${HOOK_CNT:-0}"  -gt "${SKILL_CNT:-0}" ] && [ "${HOOK_CNT:-0}"  -gt "${LOG_CNT:-0}" ]; then
-    TYPE="feat"; SCOPE="hook"
-elif [ "${LOG_CNT:-0}"   -gt 0 ]; then
-    SCOPE="log"
+if   [ "${SKILL_CNT:-0}" -gt "${HOOK_CNT:-0}" ]; then TYPE="feat"; SCOPE="skill"
+elif [ "${HOOK_CNT:-0}"  -gt "${SKILL_CNT:-0}" ]; then TYPE="feat"; SCOPE="hook"
 fi
 
-# 개별 파일 규칙 (위 영역 판단보다 구체적일 때 덮어씀)
-echo "$FILES" | grep -q "settings.json"  && SCOPE="config"
-echo "$FILES" | grep -q "CLAUDE.md"      && TYPE="docs" && SCOPE="claude"
-echo "$FILES" | grep -q ".gitignore"     && TYPE="chore" && SCOPE="config"
+echo "$FILES" | grep -q "settings.json" && SCOPE="config"
+echo "$FILES" | grep -q "CLAUDE.md"     && TYPE="docs"  && SCOPE="claude"
+echo "$FILES" | grep -q ".gitignore"    && TYPE="chore" && SCOPE="config"
 
-# ── 커밋 메시지 조합 ─────────────────────────────────────────────────────
 FIRST=$(echo "$FILES" | head -1 | xargs basename 2>/dev/null | sed 's/\.[^.]*$//')
-if [ "$FCOUNT" -gt 1 ]; then
-    DESC="$FIRST 외 $((FCOUNT - 1))개"
-else
-    DESC="$FIRST"
-fi
-
+[ "$FCOUNT" -gt 1 ] && DESC="$FIRST 외 $((FCOUNT - 1))개" || DESC="$FIRST"
 MSG="${TYPE}(${SCOPE}): ${DESC}"
 
 # ── 커밋 ────────────────────────────────────────────────────────────────
