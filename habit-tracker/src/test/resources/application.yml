@@ -1,0 +1,24 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop       # 테스트 시작 시 생성, 종료 시 삭제
+    show-sql: false
+    database-platform: org.hibernate.dialect.H2Dialect
+
+  h2:
+    console:
+      enabled: false
+
+  thymeleaf:
+    cache: false
+
+logging:
+  level:
+    com.habit: WARN               # 테스트 중 로그 최소화
+    org.hibernate: WARN

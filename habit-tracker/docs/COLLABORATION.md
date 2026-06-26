@@ -9,6 +9,7 @@ habit-tracker 프로젝트는 4개의 전문 에이전트가 협력해 개발한
 
 | 에이전트 | 호출 키워드 | 전문 영역 |
 |---------|-----------|---------|
+| **Planner** | "기획자로 ~해줘" | 정책 관리, 기능 기획, 게이미피케이션 설계, PRD 작성 |
 | **Designer** | "디자이너로 ~해줘" | UI/UX 설계, 디자인 시스템, 화면 명세 |
 | **Backend Dev** | "백엔드 개발자로 ~해줘" | Spring Boot, JPA, TDD, API 설계 |
 | **Frontend Dev** | "프론트 개발자로 ~해줘" | Thymeleaf, HTML/CSS, 반응형 UI 구현 |
@@ -21,6 +22,11 @@ habit-tracker 프로젝트는 4개의 전문 에이전트가 협력해 개발한
 ```
 [사용자 요구사항]
        │
+       ▼
+  ┌──────────┐
+  │  Planner │  → PRD 작성 + POLICY.md 관리
+  └────┬─────┘       (docs/planning/)
+       │ 디자인 브리프 전달
        ▼
   ┌─────────┐
   │ Designer │  → 화면 명세서 작성
@@ -45,12 +51,17 @@ habit-tracker 프로젝트는 4개의 전문 에이전트가 협력해 개발한
                [사용자에게 결과 보고]
 ```
 
+> **정책 변경 시**: Planner가 POLICY.md를 수정하고 영향받는 에이전트에게 직접 코드 반영을 지시한다.
+
 ---
 
 ## 산출물 위치
 
 ```
 habit-tracker/docs/
+├── planning/
+│   ├── POLICY.md                 # 기획자: 앱 정책서 (Living Document)
+│   └── prd-[기능명].md           # 기획자: 기능별 PRD
 ├── design/
 │   ├── design-system.md          # 디자이너: 공용 디자인 토큰 (색상, 타이포, 간격)
 │   └── specs/                    # 디자이너: 기능별 화면 명세서
