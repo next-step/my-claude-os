@@ -21,6 +21,7 @@
 | `/plan` | 쌓인 draft를 오래된 순으로 꺼내 언제·왜·어떻게를 인터뷰하고 `planned`로 업데이트 | draft → 마감일·상세 채워진 planned |
 | `/done [키워드]` | 미완료(draft·planned) 항목을 골라 `done`으로 완료 처리 | 키워드 부분 일치 또는 목록 선택(복수) |
 | `/remind` | 미처리 draft를 조회해 리마인더 알럿을 **텔레그램으로 발송** (없으면 조용히 종료) | Cron으로 매일 저녁 자동 호출 가능 |
+| `/remind-when` | remind 자동 알럿이 **몇 시에 실행되는지** crontab에서 조회 | 예: `매일 오전 10시 58분` |
 
 > 💡 **자동 캡처 힌트**: `/capture`를 직접 치지 않아도, 프롬프트에 할일 뉘앙스("~해야지", "~사야" 등)가 감지되면 `/capture` 실행을 제안받습니다. (자동 저장이 아니라 제안만 — 결정은 사용자 몫)
 
@@ -87,6 +88,7 @@
 │   │   ├── SKILL.md               # /plan 오케스트레이터
 │   │   └── _interviewer.md        # 구체화 인터뷰 에이전트 (로컬)
 │   ├── done/SKILL.md              # /done 오케스트레이터
+│   ├── remind-when/SKILL.md       # /remind-when (crontab 시각 조회)
 │   ├── remind/
 │   │   ├── SKILL.md               # /remind 오케스트레이터
 │   │   └── _alert.md              # 알럿 메시지 에이전트 (로컬)
