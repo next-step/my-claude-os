@@ -30,7 +30,10 @@
 | `/done [키워드]` | 미완료(draft·planned) 항목을 골라 `done`으로 완료 처리 | 키워드 부분 일치 또는 목록 선택(복수) |
 | `/remind` | 미처리 draft를 조회해 리마인더 알럿을 **텔레그램으로 발송** (없으면 조용히 종료) | Cron으로 매일 저녁 자동 호출 가능 |
 | `/remind-when` | remind 자동 알럿이 **몇 시에 실행되는지** crontab에서 조회 | 예: `매일 오후 5시 (17:00)` |
+| `/list [상태] [키워드]` | 저장된 할일을 모두 조회해 상태별로 정리·표시. 상태·키워드로 필터링 가능 | 상태별 그룹으로 전체 표시 / 키워드·상태 필터 |
+| `/skills` | 이 프로젝트에 등록된 스킬을 모두 스캔해 이름·설명·호출 방식과 함께 표시 | 등록된 스킬 카탈로그 한눈에 |
 | `/sync-readme` | 실제 `.claude/` 상태(스킬·에이전트·디렉터리)를 스캔해 **이 README를 최신화** | 스킬 추가/삭제 후 문서 자동 동기화 |
+| `/sync-test` | 실제 상태(스킬·훅·데이터 파일)를 스캔해 `tests/` 테스트 커버리지를 최신화 | 스킬·훅 변경 후 tests/ 커버리지 동기화 |
 
 > 💡 **자동 캡처 힌트**: `/capture`를 직접 치지 않아도, 프롬프트에 할일 뉘앙스("~해야지", "~사야" 등)가 감지되면 `/capture` 실행을 제안받습니다. (자동 저장이 아니라 제안만 — 결정은 사용자 몫)
 
@@ -46,7 +49,7 @@
    └──► /remind 가 매일 저녁 미처리 항목 알림 (2일 이상 방치 항목은 ⚠️ 강조)
 ```
 
-데이터 스키마(`category`, `status`, `due_date` 등)는 [`.claude/skills/_shared/notion-agent.md`](.claude/skills/_shared/notion-agent.md) 참고.
+데이터 스키마(`category`, `status`, `due_date` 등)는 `.claude/OS.md` 또는 `.claude/skills/_shared/notion.sh` 헤더 주석 참고.
 
 ---
 
@@ -66,7 +69,7 @@
 │ capture (오케스트레이터)     │
 │  1. 입력 파싱                │
 │  2. Classifier Agent 호출 ───┼──► 카테고리 분류 ("일상")
-│  3. Notion Agent 호출    ────┼──► Notion DB 에 draft 저장
+│  3. notion.sh 직접 호출  ────┼──► Notion DB 에 draft 저장
 │  4. 결과 출력                │
 └─────────────────────────────┘
 ```
@@ -76,15 +79,17 @@
 | 에이전트 | 위치 | 역할 | 재사용 |
 |---------|------|------|--------|
 | Classifier | `_shared/classifier-agent.md` | 키워드 → 카테고리 분류 | capture |
-| Notion | `_shared/notion-agent.md` | Notion DB 읽기/쓰기/수정 | **capture·plan·done·remind 공유** |
 | Telegram | `_shared/telegram-agent.md` | 알럿 메시지를 텔레그램으로 발송 | remind (발송 채널 교체 지점) |
 | Interviewer | `plan/_interviewer.md` | 할일 구체화 인터뷰 | plan 전용 |
 | Alert | `remind/_alert.md` | 리마인더 메시지 생성 (2일 이상 방치 항목 강조) | remind 전용 |
 
 > **공유(`_shared`) vs 로컬 에이전트**
-> `Notion`·`Telegram`처럼 여러 곳에서 공통으로 쓰거나 교체 지점이 되는 일꾼은 `_shared/`에 두어 중복 없이 재사용하고,
+> `Classifier`·`Telegram`처럼 여러 곳에서 공통으로 쓰거나 교체 지점이 되는 일꾼은 `_shared/`에 두어 중복 없이 재사용하고,
 > `Interviewer`·`Alert`처럼 한 스킬에서만 쓰는 일꾼은 해당 스킬 폴더 안에 둔다.
-> 덕분에 알림 채널을 슬랙·이메일로 바꿔도 `telegram-agent.md`만 교체하면 되고, 저장소를 바꿔도 `notion-agent.md`만 교체하면 된다.
+> 덕분에 알림 채널을 슬랙·이메일로 바꿔도 `telegram-agent.md`만 교체하면 되고, 분류 로직을 바꿔도 `classifier-agent.md`만 교체하면 된다.
+
+> **공용 결정론 스크립트 (`_shared/*.sh`)**
+> 저장·조회·목록 표시 같은 순수 API 호출에는 LLM 콜드 스타트 대신 **결정론적 Bash 스크립트를 직접 호출**해 속도를 높인다 (`notion.sh`, `list-view.sh`).
 
 ## 훅(Hook) 종류
 
@@ -94,12 +99,13 @@
 |----|------|--------|---------|
 | detect-todo | `hooks/detect-todo.js` | Claude Code `UserPromptSubmit` 이벤트 (세션 내부) | 프롬프트에 할일 뉘앙스("~사야", "~해야지") 감지 시 `/capture` 제안 힌트 주입 (자동 저장 X, 제안만) |
 | remind-cron | `hooks/remind-cron.sh` | crontab 매일 17:00 (세션 외부) | `claude -p "/remind"` 실행 → 미처리 draft를 텔레그램으로 알럿 |
-| telegram-listener | `hooks/telegram-listener.sh` | crontab 1분 폴링 (세션 외부) | 폰에서 봇에 보낸 `/capture` 등 슬래시 명령을 받아 `claude -p`로 실행 → 결과를 폰으로 회신 |
+| telegram-listener | `hooks/telegram-listener.sh` | launchd 상시 데몬 + long poll (세션 외부) | 폰에서 봇에 보낸 `/capture` 등 슬래시 명령을 거의 실시간으로 받아 `claude -p`로 실행 → 결과를 폰으로 회신 |
+| restart-listener-on-change | `hooks/restart-listener-on-change.sh` | Claude Code `PostToolUse` 이벤트 (세션 내부, telegram-listener.sh 수정 시) | 파일 변경 시 `launchctl kickstart -k`로 launchd 데몬 즉시 재시작 → 화이트리스트 변경 반영 |
 
 > **세션 내부 훅 vs 외부 스케줄 훅**
-> `detect-todo`는 Claude Code의 **네이티브 훅**이다. 대화 세션 안에서 사용자가 입력하는 순간 끼어들어 힌트를 주입한다 — 내가 무언가 칠 때만 동작한다.
-> `remind-cron`·`telegram-listener`는 **crontab이 세션 밖에서** 주기적으로 `claude -p`(헤드리스)를 띄우는 방식이다. 터미널을 보고 있지 않아도 — 정해진 시각이든, 폰에서 메시지가 오든 — 자동으로 돈다. (단, 실행 주체가 로컬 머신이라 맥이 켜져 있어야 한다.)
-> 한 줄 요약: **detect-todo는 "들어올 때 돕고", cron 훅들은 "내가 없을 때 일한다".**
+> `detect-todo`·`restart-listener-on-change`는 Claude Code의 **네이티브 훅**이다. 대화 세션 안에서 사용자가 입력하거나 파일을 수정하는 순간 끼어들어 동작한다.
+> `remind-cron`·`telegram-listener`는 **세션 밖에서 자동으로 실행**된다. `remind-cron`은 crontab이 매일 17:00에 띄우고, `telegram-listener`는 launchd 데몬이 상시 실행되며 폰의 메시지를 long poll로 대기한다. 터미널을 보고 있지 않아도 자동으로 돈다 (맥이 켜져 있어야 함).
+> 한 줄 요약: **세션 내 훅은 "내가 칠 때 돕고", 외부 훅은 "내가 없을 때 일한다".**
 
 > 🔒 **인바운드 보안**: `telegram-listener`는 사실상 텔레그램 메시지로 로컬 `claude`를 실행시키는 통로다. 그래서 ① 내 `chat_id`가 보낸 메시지만 처리(화이트리스트), ② 미리 등록한 슬래시 명령(`/capture`)만 실행, ③ 사용자 텍스트를 셸로 재평가하지 않음(eval 미사용) — 3종 안전장치를 둔다.
 
@@ -108,29 +114,37 @@
 ```
 .claude/
 ├── OS.md                          # 시스템 설계 문서 (원칙·흐름·스키마)
+├── launchd/
+│   └── com.joy.telegram-listener.plist  # launchd 설정: telegram-listener 상시 실행 + 자동 재시작
 ├── skills/
 │   ├── capture/SKILL.md           # /capture 오케스트레이터
+│   ├── done/SKILL.md              # /done 오케스트레이터
+│   ├── list/SKILL.md              # /list 오케스트레이터 (할일 조회·필터링)
 │   ├── plan/
 │   │   ├── SKILL.md               # /plan 오케스트레이터
 │   │   └── _interviewer.md        # 구체화 인터뷰 에이전트 (로컬)
-│   ├── done/SKILL.md              # /done 오케스트레이터
-│   ├── remind-when/SKILL.md       # /remind-when (crontab 시각 조회)
-│   ├── sync-readme/SKILL.md       # /sync-readme (실제 상태 스캔 → README 갱신)
 │   ├── remind/
 │   │   ├── SKILL.md               # /remind 오케스트레이터
 │   │   └── _alert.md              # 알럿 메시지 에이전트 (로컬)
+│   ├── remind-when/SKILL.md       # /remind-when (crontab 시각 조회)
+│   ├── skills/SKILL.md            # /skills 오케스트레이터 (스킬 카탈로그)
+│   ├── sync-readme/SKILL.md       # /sync-readme (실제 상태 스캔 → README 갱신)
+│   ├── sync-test/SKILL.md         # /sync-test (실제 상태 스캔 → tests/ 커버리지 동기화)
 │   └── _shared/
 │       ├── classifier-agent.md    # 카테고리 분류 에이전트 (공유)
-│       ├── notion-agent.md        # 할일 저장소 에이전트 (공유, Notion API)
+│       ├── list-view.sh           # 할일 목록 조회·표시 단일 소스 (공유)
+│       ├── notion.sh              # Notion DB 직접 호출 헬퍼 (공유, 결정론 스크립트)
 │       └── telegram-agent.md      # 알럿 발송 에이전트 (공유)
 ├── hooks/
 │   ├── detect-todo.js             # UserPromptSubmit 훅: 자연어 할일 감지 → /capture 제안 힌트
 │   ├── remind-cron.sh             # crontab(매일 17:00)이 호출하는 /remind 실행 스크립트
-│   └── telegram-listener.sh       # crontab(1분 폴링) 인바운드 브리지: 폰의 슬래시 명령 → claude -p 실행
+│   ├── telegram-listener.sh       # launchd 상시 데몬: 폰의 슬래시 명령 long poll → claude -p 실행 → 회신
+│   └── restart-listener-on-change.sh  # PostToolUse 훅: telegram-listener.sh 수정 시 데몬 재시작
 └── data/
     ├── notion.json                # Notion 토큰·DB ID (비밀값, git 제외)
     ├── telegram.json              # 텔레그램 봇 토큰·chat_id (비밀값, git 제외)
-    └── telegram-offset.txt        # 텔레그램 폴링 오프셋 (런타임 상태, git 제외)
+    ├── telegram-offset.txt        # 텔레그램 폴링 오프셋 (런타임 상태, git 제외)
+    └── telegram-listener.log      # 텔레그램 리스너 로그 (런타임 로그, git 제외)
 ```
 
 ## 저장소: Notion 연동
@@ -138,7 +152,7 @@
 할일 데이터는 **Notion DB "할일 (Claude OS)"** 에 저장된다. 크로스 디바이스(iPad·iPhone·MacBook) 접근이 목적이다.
 
 - 자격증명은 `.claude/data/notion.json`(토큰·DB ID)에서 읽으며, 이 파일은 `.gitignore`로 커밋에서 제외된다.
-- 스킬·오케스트레이터는 저장소 종류를 모른다. 저장 방식이 바뀌어도 `notion-agent.md` 내부만 교체하면 되도록 설계되어 있다. (실제로 로컬 JSON Mock → Notion API 전환을 스킬 수정 없이 완료)
+- 스킬·오케스트레이터는 저장소 종류를 모른다. 저장 방식이 바뀌어도 `notion.sh` 스크립트만 교체하면 되도록 설계되어 있다. (실제로 로컬 JSON Mock → Notion API 전환을 스킬 수정 없이 완료)
 
 ## 자동 리마인더 등록
 
