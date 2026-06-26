@@ -37,7 +37,7 @@ public class RoutineCheck {
      * 동일 루틴+날짜 조합에서 최초 완료 1회만 XP 를 지급한다.
      * 체크 해제 후 재체크 시에도 이 값이 true 이면 추가 지급하지 않는다.
      */
-    @Column(name = "xp_awarded", nullable = false)
+    @Column(name = "xp_awarded", nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
     private boolean xpAwarded = false;
 
     public static RoutineCheck of(Routine routine, LocalDate date, boolean completed) {
