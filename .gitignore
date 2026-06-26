@@ -12,3 +12,7 @@
 
 # Notion 자격증명 (비밀값 — 절대 커밋 금지)
 .claude/data/notion.json
+
+# 텔레그램 리스너 런타임 상태 (오프셋·락 — 로컬 전용)
+.claude/data/telegram-offset.txt
+.claude/data/.telegram-listener.lock
