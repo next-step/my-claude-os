@@ -1,5 +1,7 @@
 #!/bin/bash
-# Stop 훅 — Claude 작업 완료 시 변경사항을 안전하게 자동 커밋한다. push는 하지 않는다.
+# Stop 훅 — Claude 작업 완료 시 변경사항을 자동 커밋한다. push는 하지 않는다.
+# github-commit 스킬의 【빠른 모드】와 동일한 로직을 쉘 스크립트로 구현한 것.
+# (훅은 스킬을 직접 호출할 수 없어 별도 스크립트로 존재한다.)
 
 LOCK="/tmp/claude-os-auto-commit.lock"
 [ -f "$LOCK" ] && exit 0
