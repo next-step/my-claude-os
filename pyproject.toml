@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "signup-login-api"
+version = "0.1.0"
+description = "회원가입·로그인 FastAPI API (Claude Code OS 첫 백엔드 기능)"
+requires-python = ">=3.9"
+dependencies = [
+    "fastapi==0.111.1",
+    "sqlalchemy>=2.0",
+    "python-jose[cryptography]>=3.3",
+    "uvicorn>=0.30",
+    "pytest>=8.0",
+    "httpx>=0.27",
+]
+
+# 프로젝트 타깃 버전은 3.12로 표기하되, 코드는 3.9에서 동작하도록 작성한다.
+[tool.black]
+target-version = ["py312"]
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+[tool.pytest.ini_options]
+addopts = "-q"
+testpaths = ["tests"]

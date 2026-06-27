@@ -1,2 +1,7 @@
 .idea
 .claude/skill-usage.log
+.venv/
+*.db
+.env
+*.egg-info/
+__pycache__/
