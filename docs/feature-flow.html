@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>/feature 흐름 도식 — 제안 3층 구조</title>
+<style>
+  :root{
+    --human:#fdf2f8; --human-b:#db2777;
+    --coord:#eef2ff; --coord-b:#6366f1;
+    --impl:#f0fdfa;  --impl-b:#0d9488;
+    --agent:#eff6ff; --agent-b:#3b82f6;
+    --repo:#f5f3ff;  --repo-b:#8b5cf6;
+    --ink:#1f2937; --muted:#6b7280; --line:#e5e7eb;
+  }
+  *{box-sizing:border-box;}
+  body{font-family:-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;color:var(--ink);
+       background:#fff;margin:0;padding:32px;}
+  h1{font-size:20px;margin:0 0 4px;}
+  .sub{color:var(--muted);font-size:13px;margin:0 0 18px;line-height:1.5;}
+  .tag{display:inline-block;background:#ecfeff;color:#0e7490;border:1px solid #a5f3fc;border-radius:999px;
+       font-size:11px;font-weight:700;padding:2px 10px;margin-bottom:10px;}
+  .board{display:flex;border:1px solid var(--line);border-radius:12px;overflow:hidden;}
+  .lanes{flex:1;position:relative;}
+  .lane{display:grid;grid-template-columns:130px repeat(9,1fr);border-bottom:1px solid var(--line);min-height:90px;}
+  .lane:last-child{border-bottom:none;}
+  .lane-label{padding:12px;border-right:1px solid var(--line);display:flex;flex-direction:column;justify-content:center;gap:2px;}
+  .lane-label .dot{font-weight:700;font-size:13px;}
+  .lane-label .role{font-size:11px;color:var(--muted);}
+  .cell{padding:9px 7px;display:flex;align-items:center;justify-content:center;position:relative;}
+  .card{border-radius:10px;padding:9px 11px;width:100%;box-shadow:0 1px 2px rgba(0,0,0,.05);background:#fff;}
+  .card .no{font-size:11px;font-weight:800;letter-spacing:.5px;}
+  .card .ttl{font-size:12.5px;font-weight:700;line-height:1.3;margin-top:2px;}
+  .card .meta{font-size:10px;color:var(--muted);margin-top:3px;}
+  .row-human{background:var(--human);} .row-coord{background:var(--coord);}
+  .row-impl{background:var(--impl);} .row-agent{background:var(--agent);} .row-repo{background:var(--repo);}
+  .row-human .dot{color:var(--human-b);} .row-coord .dot{color:var(--coord-b);}
+  .row-impl .dot{color:var(--impl-b);} .row-agent .dot{color:var(--agent-b);} .row-repo .dot{color:var(--repo-b);}
+  .c-human{border:1px solid #f9a8d4;} .c-human .no{color:var(--human-b);}
+  .c-coord{border:1px solid #c7d2fe;} .c-coord .no{color:var(--coord-b);}
+  .c-impl{border:1px solid #99f6e4;} .c-impl .no{color:var(--impl-b);}
+  .c-agent{border:1px solid #bfdbfe;} .c-agent .no{color:var(--agent-b);}
+  .c-repo{border:1px solid #ddd6fe;} .c-repo .no{color:var(--repo-b);}
+  .future{border:1.5px dashed #f59e0b !important;background:#fffbeb;}
+  .future .no{color:#b45309;}
+  .small{font-size:10.5px;color:var(--muted);text-align:center;line-height:1.4;}
+  /* loop overlay */
+  .loop{position:absolute;border:2px dashed var(--impl-b);border-radius:12px;pointer-events:none;
+        left:calc(130px + (100% - 130px) * 6 / 9);
+        width:calc((100% - 130px) * 3 / 9);
+        top:178px;height:178px;}
+  .looplabel{position:absolute;font-size:11px;font-weight:800;color:var(--impl-b);background:#fff;padding:1px 7px;
+        left:calc(130px + (100% - 130px) * 6 / 9 + 8px);top:168px;}
+  /* side panels */
+  .side{display:flex;flex-direction:column;border-left:1px solid var(--line);}
+  .vpanel{flex:1;display:flex;align-items:center;justify-content:center;padding:10px;writing-mode:vertical-rl;
+          font-weight:800;font-size:13px;letter-spacing:2px;}
+  .vp1{background:#ecfdf5;color:#059669;}
+  .vp2{background:#fffbeb;color:#b45309;border-top:1px solid var(--line);}
+  .verdict{margin-top:14px;background:#f0fdfa;border:1px solid #99f6e4;border-radius:10px;padding:10px 14px;font-size:12.5px;}
+  .verdict b{color:var(--impl-b);}
+  .note{margin-top:10px;border-top:1px solid var(--line);padding:12px 2px;font-size:12px;color:var(--muted);
+        display:flex;gap:20px;flex-wrap:wrap;}
+  .note b{color:var(--ink);}
+  .foot{margin-top:12px;display:flex;justify-content:space-between;color:#9ca3af;font-size:11px;letter-spacing:2px;}
+</style>
+</head>
+<body>
+  <span class="tag">제안 구조 (A 방향) — 현재는 /impl이 검증까지 함, 목표는 /verify 분리</span>
+  <h1>/feature 흐름 — 3층 오케스트레이션</h1>
+  <p class="sub">행 = 주체 · 열 = 시간순(01→11) · 점선 = 빌드 루프.<br>
+     <b>라우터(/feature)</b> → <b>빌드 오케스트레이터(/impl, 루프 제어)</b> → <b>일꾼(구현 · /verify)</b>. 검증이 자라는 곳은 /verify.</p>
+
+  <div class="board">
+    <div class="lanes">
+
+      <!-- 사람 -->
+      <div class="lane row-human">
+        <div class="lane-label"><span class="dot">● 사람</span><span class="role">요구·게이트 승인</span></div>
+        <div class="cell"><div class="card c-human"><div class="no">01</div><div class="ttl">요구사항 작성 ✍</div></div></div>
+        <div class="cell"></div>
+        <div class="cell"><div class="card c-human"><div class="no">03</div><div class="ttl">PRD 확정</div></div></div>
+        <div class="cell"></div>
+        <div class="cell"><div class="card c-human"><div class="no">05</div><div class="ttl">Plan 승인</div></div></div>
+        <div class="cell"></div>
+        <div class="cell"></div>
+        <div class="cell"></div>
+        <div class="cell"><div class="card c-human"><div class="no">10</div><div class="ttl">결과 확인</div><div class="meta">⑤ 게이트</div></div></div>
+      </div>
+
+      <!-- /feature 라우터 -->
+      <div class="lane row-coord">
+        <div class="lane-label"><span class="dot">● /feature</span><span class="role">라우터</span></div>
+        <div class="cell"></div>
+        <div class="cell"><div class="card c-coord"><div class="no">▸</div><div class="ttl">/prd</div></div></div>
+        <div class="cell"></div>
+        <div class="cell"><div class="card c-coord"><div class="no">▸</div><div class="ttl">/plan</div></div></div>
+        <div class="cell"></div>
+        <div class="cell"><div class="card c-coord"><div class="no">▸</div><div class="ttl">/impl</div><div class="meta">상태 보고 라우팅</div></div></div>
+        <div class="cell"></div>
+        <div class="cell"></div>
+        <div class="cell"></div>
+      </div>
+
+      <!-- /impl 빌드 오케스트레이터 (한 디스패처) -->
+      <div class="lane row-impl">
+        <div class="lane-label"><span class="dot">● /impl</span><span class="role">빌드 오케스트레이터<br>(한 디스패처)</span></div>
+        <div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div>
+        <div class="cell" style="grid-column: span 4;">
+          <div class="card c-impl">
+            <div class="no">06 · 한 역할이 루프를 돈다</div>
+            <div class="ttl">디스패처 — 상황 따라 일꾼에게 던지고, 판정대로 분기</div>
+            <div class="meta">구현 일꾼 ▷ /verify 일꾼 ▷ (verify 판정) → 통과·10 / 구현결함·재구현↺ / 설계문제·/plan↑</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 일꾼: AI 실행자 + /verify -->
+      <div class="lane row-agent">
+        <div class="lane-label"><span class="dot">● 일꾼</span><span class="role">AI 실행자 · /verify</span></div>
+        <div class="cell"></div>
+        <div class="cell"><div class="card c-agent"><div class="no">02</div><div class="ttl">PRD 작성 + 독립 검토</div></div></div>
+        <div class="cell"></div>
+        <div class="cell"><div class="card c-agent"><div class="no">04</div><div class="ttl">재활용 조사 + Plan 설계</div><div class="meta">갭만 병렬 Explore</div></div></div>
+        <div class="cell"></div>
+        <div class="cell"></div>
+        <div class="cell"><div class="card c-agent"><div class="no">구현</div><div class="ttl">코드 + 테스트</div></div></div>
+        <div class="cell">
+          <div class="card c-agent"><div class="no">/verify (판단)</div><div class="ttl">검사 실행 + 판정 산출</div>
+            <div class="meta">→ 통과 / 구현결함 / 설계문제 + 근거</div>
+            <div class="meta" style="margin-top:5px;"><span style="border:1px dashed #f59e0b;border-radius:6px;padding:1px 5px;color:#b45309;">+ PR Checks · CI (예정)</span></div>
+          </div>
+        </div>
+        <div class="cell"></div>
+      </div>
+
+      <!-- 저장소 -->
+      <div class="lane row-repo">
+        <div class="lane-label"><span class="dot">● 저장소</span><span class="role">산출물</span></div>
+        <div class="cell"><div class="small">docs/<br>requirements</div></div>
+        <div class="cell"><div class="small">docs/prd</div></div>
+        <div class="cell"></div>
+        <div class="cell"><div class="small">docs/plan</div></div>
+        <div class="cell"></div>
+        <div class="cell"></div>
+        <div class="cell"><div class="small">app/ + tests/</div></div>
+        <div class="cell"></div>
+        <div class="cell"><div class="card c-repo"><div class="no">11</div><div class="ttl">commit · push → PR</div></div></div>
+      </div>
+
+      <!-- 빌드 루프 점선 박스 (/impl + 일꾼, 열 7~9) -->
+      <div class="loop"></div>
+      <div class="looplabel">🔁 빌드 루프 — 제어 = /impl · 구현 ⇄ /verify</div>
+
+    </div>
+
+    <!-- 우측 세로 패널 -->
+    <div class="side">
+      <div class="vpanel vp1">산출물 누적</div>
+      <div class="vpanel vp2">/verify 확장 (PR Checks·CI)</div>
+    </div>
+  </div>
+
+  <div class="verdict">
+    <b>판단(/verify, 일꾼)</b> 이 판정을 내면 → <b>결정(/impl, 제어)</b> 이 분기한다. <i>judging ≠ deciding.</i><br>
+    ① <b>통과</b> → 10 결과 확인 &nbsp;|&nbsp;
+    ② <b>구현 결함</b> → 07로 <b>재구현 ↺</b> (루프) &nbsp;|&nbsp;
+    ③ <b>설계 문제</b> → 루프 탈출, <b>04 /plan 으로 에스컬레이션 ↑</b> (이번 세션의 "구조 누락"이 바로 ③)
+  </div>
+
+  <div class="note">
+    <span><b>왜 /verify 분리</b> — PR Checks·CI 등 검증은 계속 자란다. 자라는 일꾼을 /impl 안에 넣으면 god-object. 검증은 /verify로, /impl은 루프 제어만.</span>
+    <span><b>흐름 강제</b> — CLAUDE.md 규칙(게이트·테스트·재활용)</span>
+  </div>
+
+  <div class="foot"><span>MY CLAUDE CODE OS</span><span>제안: 라우터 · 빌드 오케스트레이터 · /verify</span></div>
+</body>
+</html>
