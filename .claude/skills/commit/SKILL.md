@@ -64,3 +64,5 @@ EOF
 - **사용자가 명시적으로 요청하지 않는 한** `git push --force`, `git reset --hard`, 히스토리 재작성(`rebase`, `commit --amend` of 푸시된 커밋)을 하지 않는다.
 - 메인 브랜치(`main`/`master`)에 직접 푸시하기 전에는, 보호 정책이 있을 수 있으니 한 번 더 확인한다.
 - 커밋할 변경이 없으면(`nothing to commit`) 그 사실을 알리고 종료한다.
+- 회사계정으로 커밋하지 않도록 개인계정으로 변경 후 작업을 진행한다. 해당 명령어는 아래와 같다.
+  - git remote set-url origin https://ChoiJeongHyun@github.com/ChoiJeongHyun/my-claude-code-os.git
