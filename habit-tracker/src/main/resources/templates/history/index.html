@@ -7,9 +7,15 @@
 
 <div class="container py-4">
 
-    <!-- 날짜 네비게이션 -->
+    <!-- ===================================================
+         날짜 네비게이션
+         - nav-date-btn: 44×44px 터치 타겟 확보 (btn-sm → nav-date-btn)
+         - "다음" 버튼: 오늘일 때 aria-disabled + tabindex="-1" 처리
+         =================================================== -->
     <div class="d-flex align-items-center justify-content-between mb-4">
-        <a th:href="@{/history(date=${prev})}" class="btn btn-outline-secondary btn-sm">
+        <a th:href="@{/history(date=${prev})}"
+           class="btn btn-outline-secondary nav-date-btn"
+           aria-label="이전 날짜">
             <i class="bi bi-chevron-left"></i>
         </a>
         <div class="text-center">
@@ -17,31 +23,55 @@
                 th:text="${#temporals.format(target, 'yyyy년 M월 d일 (E)', new java.util.Locale('ko'))}"></h5>
             <small class="text-primary" th:if="${isToday}">오늘</small>
         </div>
-        <a th:href="@{/history(date=${next})}" class="btn btn-outline-secondary btn-sm"
-           th:classappend="${isToday} ? ' disabled' : ''">
+        <a th:href="@{/history(date=${next})}"
+           class="btn btn-outline-secondary nav-date-btn"
+           th:classappend="${isToday} ? ' disabled' : ''"
+           th:attr="aria-disabled=${isToday},
+                    tabindex=${isToday} ? '-1' : '0'"
+           aria-label="다음 날짜">
             <i class="bi bi-chevron-right"></i>
         </a>
     </div>
 
-    <!-- 해당 날짜 루틴 -->
-    <div th:if="${#lists.isEmpty(routines)}" class="text-center py-5 text-muted">
-        <i class="bi bi-inbox" style="font-size: 3rem;"></i>
-        <p class="mt-2">이 날 예정된 루틴이 없습니다.</p>
+    <!-- ===================================================
+         빈 상태: 해당 날짜에 루틴이 없을 때 (POLICY §4-2, §4-3)
+         - bi-calendar-x: 날짜에 루틴 없음을 표현 (bi-inbox 제거)
+         - 오늘/과거 날짜에 따라 메시지 분기
+         =================================================== -->
+    <div th:if="${#lists.isEmpty(routines)}" class="text-center py-5">
+        <i class="bi bi-calendar-x" style="font-size: 3rem; color: var(--color-text-3);"></i>
+        <p class="fw-semibold mt-3 mb-1"
+           style="font-size: 15px; color: var(--color-text-2);"
+           th:text="${isToday} ? '오늘은 루틴이 없어요' : '이 날은 루틴이 없었어요'"></p>
+        <p class="mb-3"
+           style="font-size: 14px; color: var(--color-text-2);"
+           th:text="${isToday} ? '새 루틴을 추가하면 내일부터 시작돼요' : '오늘 루틴을 추가하면 내일부터 기록돼요'"></p>
+        <a th:href="@{/}" class="btn btn-primary">오늘 루틴 보기 →</a>
     </div>
 
+    <!-- ===================================================
+         루틴 목록
+         - 완료/미완료 배지 모두 제거: 죄책감 유발 방지 (POLICY §4-3)
+           · 완료: border-left(초록) + 체크 아이콘 filled + line-through 로 충분
+           · 미완료: border-left(파랑) + 빈 원 아이콘으로 충분
+         - 과거 날짜: 모든 체크 버튼 비활성화 (완료/미완료 모두 read-only)
+         =================================================== -->
     <div class="d-flex flex-column gap-2" th:if="${!#lists.isEmpty(routines)}">
         <div th:each="r : ${routines}"
              class="card border-0 shadow-sm routine-card"
              th:classappend="${r.completed} ? ' completed' : ''">
             <div class="card-body d-flex align-items-center py-3">
+
                 <form th:action="@{/check/{id}(id=${r.id})}" method="post" class="me-3">
                     <input type="hidden" name="returnDate" th:value="${target}"/>
                     <button type="submit" class="check-btn"
-                            th:disabled="${isToday == false and r.completed == false}">
+                            th:disabled="${!isToday}"
+                            th:attr="aria-label=${r.completed} ? '완료 취소: ' + ${r.name} : '완료로 표시: ' + ${r.name}">
                         <i class="bi fs-4"
                            th:classappend="${r.completed} ? 'bi-check-circle-fill text-success' : 'bi-circle text-secondary'"></i>
                     </button>
                 </form>
+
                 <div class="flex-grow-1">
                     <div class="fw-semibold"
                          th:text="${r.name}"
@@ -49,11 +79,13 @@
                     <small class="text-muted" th:text="${r.description}"
                            th:if="${r.description != null and !r.description.isEmpty()}"></small>
                 </div>
-                <span th:if="${r.completed}" class="badge bg-success-subtle text-success">완료</span>
-                <span th:if="${!r.completed}" class="badge bg-secondary-subtle text-secondary">미완료</span>
+
+                <!-- 완료/미완료 배지 제거됨: 과거 미완료 배지는 죄책감 유발 -->
+
             </div>
         </div>
     </div>
+
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>

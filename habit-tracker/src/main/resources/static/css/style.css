@@ -3,6 +3,14 @@
    - 모든 색상은 이 변수만 사용. 하드코딩 금지.
    ===================================================== */
 :root {
+  /* Bootstrap 변수 오버라이드 — 디자인 시스템 색상과 동기화
+     이 선언으로 bg-success, text-success 등 Bootstrap 유틸리티가
+     디자인 시스템 색상(#22C55E, #3B82F6)을 따른다.
+     Bootstrap 기본값: #198754(success), #0d6efd(primary)와 불일치 문제 해결 */
+  --bs-success:     #22C55E;
+  --bs-success-rgb: 34, 197, 94;
+  --bs-primary:     #3B82F6;
+  --bs-primary-rgb: 59, 130, 246;
   /* 브랜드 */
   --color-primary:          #3B82F6;
   --color-primary-light:    #EFF6FF;
@@ -282,6 +290,44 @@
 .banner-close:focus-visible {
     outline: 2px solid rgba(255, 255, 255, 0.6);
     outline-offset: 2px;
+}
+
+
+/* =====================================================
+   완료 카운트 텍스트 (홈 진행 바 옆 "N/M 완료")
+   - white-space: nowrap → 좁은 화면에서 줄바꿈 방지
+   ===================================================== */
+.completion-count {
+  font-size: 13px;
+  color: var(--color-text-2);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+
+/* =====================================================
+   날짜 네비게이션 버튼 (기록 화면 이전/다음)
+   - 44×44px 터치 타겟 확보 (모바일 WCAG 기준)
+   - btn-sm 대체: 기본 btn보다 작지만 터치 타겟은 충족
+   ===================================================== */
+.nav-date-btn {
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 var(--space-md);
+}
+
+
+/* =====================================================
+   바 차트 레이블 (통계 화면 7일 차트)
+   - 접근성: 0.65rem(10.4px) → 11px (WCAG 권고 최소값)
+   ===================================================== */
+.chart-label {
+  font-size: 11px;
+  color: var(--color-text-2);
+  line-height: 1;
 }
 
 
