@@ -11,6 +11,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -68,7 +69,9 @@ class HomeControllerIntegrationTest {
                 .andExpect(view().name("index"))
                 .andExpect(model().attributeExists("todayRoutines"))
                 .andExpect(model().attributeExists("today"))
-                .andExpect(model().attributeExists("completionRate"));
+                .andExpect(model().attributeExists("completionRate"))
+                .andExpect(model().attributeExists("currentXp"))
+                .andExpect(model().attributeExists("xpLevelRange"));
     }
 
     @Test
@@ -117,20 +120,21 @@ class HomeControllerIntegrationTest {
     // ── GET /stats ────────────────────────────────────────────────────────
 
     @Test
-    @DisplayName("GET /stats: HTTP 200 + stats/index 뷰, 모델에 rates7/rates30/today 포함")
+    @DisplayName("GET /stats: HTTP 200 + stats/index 뷰, 모델에 rates7/rates30/today/hasActiveRoutines 포함")
     void stats_성공() throws Exception {
         mockMvc.perform(get("/stats"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("stats/index"))
                 .andExpect(model().attributeExists("rates7"))
                 .andExpect(model().attributeExists("rates30"))
-                .andExpect(model().attributeExists("today"));
+                .andExpect(model().attributeExists("today"))
+                .andExpect(model().attributeExists("hasActiveRoutines"));
     }
 
     // ── GET /history ──────────────────────────────────────────────────────
 
     @Test
-    @DisplayName("GET /history?date=2024-01-01: HTTP 200 + history/index 뷰, 모델에 target/routines/prev/next/isToday 포함")
+    @DisplayName("GET /history?date=2024-01-01: HTTP 200 + history/index 뷰, 모델에 target/routines/prev/next/isToday/isFuture 포함")
     void history_특정날짜조회성공() throws Exception {
         mockMvc.perform(get("/history").param("date", "2024-01-01"))
                 .andExpect(status().isOk())
@@ -139,7 +143,25 @@ class HomeControllerIntegrationTest {
                 .andExpect(model().attributeExists("routines"))
                 .andExpect(model().attributeExists("prev"))
                 .andExpect(model().attributeExists("next"))
-                .andExpect(model().attributeExists("isToday"));
+                .andExpect(model().attributeExists("isToday"))
+                .andExpect(model().attributeExists("isFuture"));
+    }
+
+    @Test
+    @DisplayName("GET /history?date=미래날짜: isFuture=true 를 모델에 포함한다 — BUG-05")
+    void history_미래날짜이면_isFuture_true() throws Exception {
+        String futureDate = LocalDate.now().plusDays(1).toString();
+        mockMvc.perform(get("/history").param("date", futureDate))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("isFuture", true));
+    }
+
+    @Test
+    @DisplayName("GET /history?date=과거날짜: isFuture=false 를 모델에 포함한다 — BUG-05")
+    void history_과거날짜이면_isFuture_false() throws Exception {
+        mockMvc.perform(get("/history").param("date", "2024-01-01"))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("isFuture", false));
     }
 
     @Test

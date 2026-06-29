@@ -93,6 +93,18 @@ public class UserStatsService {
         return (int) Math.round(xpInLevel * 100.0 / levelRange);
     }
 
+    /**
+     * 현재 레벨 구간 크기 (다음 레벨 minXp - 현재 레벨 minXp).
+     * 디자인 스펙의 "80 / 200 XP" 에서 분모에 해당하는 값.
+     * 만렙(LEGEND) 이면 0 을 반환한다.
+     */
+    @Transactional(readOnly = true)
+    public int getXpLevelRange() {
+        Level current = Level.fromXp(getOrCreate().getTotalXp());
+        if (current == Level.LEGEND) return 0;
+        return current.nextLevel().getMinXp() - current.getMinXp();
+    }
+
     // ── 오늘 보너스 중복 방지 ─────────────────────────────────────────────────
 
     /** 오늘 전체 완료 보너스를 이미 받았는지 확인한다. */

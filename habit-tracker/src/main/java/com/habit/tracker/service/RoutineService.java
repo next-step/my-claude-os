@@ -113,7 +113,7 @@ public class RoutineService {
             boolean allCompleted = !todayRoutines.isEmpty()
                     && todayRoutines.stream().allMatch(TodayRoutineDto::isCompleted);
 
-            if (allCompleted && !userStatsService.isTodayBonusAwarded()) {
+            if (date.equals(LocalDate.now()) && allCompleted && !userStatsService.isTodayBonusAwarded()) {
                 userStatsService.awardXp(50);
                 userStatsService.markTodayBonusAwarded();
             }

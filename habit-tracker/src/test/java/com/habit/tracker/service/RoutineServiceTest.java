@@ -718,6 +718,30 @@ class RoutineServiceTest {
         }
 
         @Test
+        @DisplayName("과거 날짜 루틴 전체 완료 시 오늘 보너스를 지급하지 않는다 — BUG-03")
+        void 과거날짜_전체완료시_보너스_미지급() {
+            // given — 과거 날짜 (오늘이 아님)
+            LocalDate pastDate = LocalDate.of(2024, 1, 1); // MONDAY, 고정 과거 날짜
+            RoutineCheck existing = RoutineCheck.of(allDaysRoutine1, pastDate, false);
+
+            given(routineRepository.findById(1L)).willReturn(Optional.of(allDaysRoutine1));
+            given(routineCheckRepository.findByRoutineIdAndCheckDate(1L, pastDate))
+                    .willReturn(Optional.of(existing));
+            // 해당 날짜 루틴 1개, toggle 후 completed=true 로 전체 완료 상태
+            given(routineRepository.findByActiveTrueOrderByCreatedAtAsc())
+                    .willReturn(List.of(allDaysRoutine1));
+            given(userStatsService.getCurrentLevel()).willReturn(Level.SPROUT);
+
+            // when
+            routineService.toggleCheck(1L, pastDate);
+
+            // then — 10XP 는 지급되지만, 과거 날짜이므로 보너스 50XP 미지급
+            then(userStatsService).should().awardXp(10);
+            then(userStatsService).should(never()).awardXp(50);
+            then(userStatsService).should(never()).markTodayBonusAwarded();
+        }
+
+        @Test
         @DisplayName("레벨업 없으면 leveledUp=false 를 반환한다")
         void 레벨업_없으면_false() {
             // given

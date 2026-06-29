@@ -30,8 +30,10 @@ public class HomeController {
 
         // XP / 레벨 속성
         model.addAttribute("userLevel", userStatsService.getCurrentLevel());
+        model.addAttribute("currentXp", userStatsService.getTotalXp());
         model.addAttribute("xpInCurrentLevel", userStatsService.getXpInCurrentLevel());
         model.addAttribute("xpToNextLevel", userStatsService.getXpToNextLevel());
+        model.addAttribute("xpLevelRange", userStatsService.getXpLevelRange());
         model.addAttribute("xpProgressPercent", userStatsService.getXpProgressPercent());
 
         // 레벨업 배너 기본값 설정 (플래시 속성 없는 경우 대비)
@@ -68,6 +70,7 @@ public class HomeController {
         model.addAttribute("rates7", routineService.getDailyCompletionRates(7));
         model.addAttribute("rates30", routineService.getDailyCompletionRates(30));
         model.addAttribute("today", LocalDate.now());
+        model.addAttribute("hasActiveRoutines", !routineService.findAllActive().isEmpty());
         return "stats/index";
     }
 
@@ -81,6 +84,7 @@ public class HomeController {
         model.addAttribute("prev", target.minusDays(1));
         model.addAttribute("next", target.plusDays(1));
         model.addAttribute("isToday", target.equals(LocalDate.now()));
+        model.addAttribute("isFuture", target.isAfter(LocalDate.now()));
         return "history/index";
     }
 }

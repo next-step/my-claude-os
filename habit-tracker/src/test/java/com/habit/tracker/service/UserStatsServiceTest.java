@@ -232,6 +232,42 @@ class UserStatsServiceTest {
         }
     }
 
+    // ── getXpLevelRange ───────────────────────────────────────────────────────
+
+    @Nested
+    @DisplayName("getXpLevelRange — 현재 레벨 구간 크기 (XP 바 분모)")
+    class GetXpLevelRange {
+
+        @Test
+        @DisplayName("SPROUT 구간(0~200) 이면 구간 크기 200 을 반환한다")
+        void SPROUT_구간크기_200() {
+            given(userStatsRepository.findById(1L)).willReturn(Optional.of(statsWithXp(0)));
+            assertThat(userStatsService.getXpLevelRange()).isEqualTo(200);
+        }
+
+        @Test
+        @DisplayName("SAPLING 구간(200~600) 이면 구간 크기 400 을 반환한다")
+        void SAPLING_구간크기_400() {
+            given(userStatsRepository.findById(1L)).willReturn(Optional.of(statsWithXp(250)));
+            assertThat(userStatsService.getXpLevelRange()).isEqualTo(400);
+        }
+
+        @Test
+        @DisplayName("LEGEND(만렙) 이면 0 을 반환한다")
+        void LEGEND_구간크기_0() {
+            given(userStatsRepository.findById(1L)).willReturn(Optional.of(statsWithXp(15000)));
+            assertThat(userStatsService.getXpLevelRange()).isEqualTo(0);
+        }
+
+        @Test
+        @DisplayName("totalXp=80 이면 SPROUT 구간 크기 200 을 반환한다 — BUG-02 분모 검증")
+        void totalXp_80이면_분모_200() {
+            // "80 / 200 XP" 디자인 명세와 일치하는지 검증
+            given(userStatsRepository.findById(1L)).willReturn(Optional.of(statsWithXp(80)));
+            assertThat(userStatsService.getXpLevelRange()).isEqualTo(200);
+        }
+    }
+
     // ── isTodayBonusAwarded / markTodayBonusAwarded ───────────────────────────
 
     @Nested

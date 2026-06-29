@@ -19,8 +19,10 @@
 | `today` | `LocalDate` | 오늘 날짜 |
 | `completionRate` | `int` | 오늘 완료율 (0–100) |
 | `userLevel` | `Level` | 현재 레벨 Enum |
+| `currentXp` | `int` | 누적 총 XP |
 | `xpInCurrentLevel` | `int` | 현재 레벨 시작 XP 기준 진행 XP |
 | `xpToNextLevel` | `int` | 다음 레벨까지 남은 XP (만렙 LEGEND 이면 0) |
+| `xpLevelRange` | `int` | 현재 레벨 구간 크기 (다음 레벨 minXp - 현재 레벨 minXp, 만렙이면 0) |
 | `xpProgressPercent` | `int` | 현재 레벨 구간 내 진행률 0–100 (만렙이면 100) |
 | `leveledUp` | `boolean` | 직전 체크로 레벨업 발생 여부 (플래시, 기본값 false) |
 | `newLevel` | `Level` (nullable) | 레벨업 시 새 레벨 Enum (플래시) |
@@ -98,6 +100,7 @@ daysOfWeek  String  (예: "MON,WED,FRI")
 |----|------|------|
 | `rates7` | `LinkedHashMap<LocalDate, Integer>` | 최근 7일 날짜별 완료율 |
 | `rates30` | `LinkedHashMap<LocalDate, Integer>` | 최근 30일 날짜별 완료율 |
+| `hasActiveRoutines` | `boolean` | 활성 루틴이 1개 이상 존재하는지 여부 (빈 상태 분기용) |
 
 ---
 
@@ -117,8 +120,9 @@ daysOfWeek  String  (예: "MON,WED,FRI")
 | `prev` | `LocalDate` | 이전 날짜 |
 | `next` | `LocalDate` | 다음 날짜 |
 | `isToday` | `boolean` | 오늘 여부 (미래 날짜 체크 방지용) |
+| `isFuture` | `boolean` | 미래 날짜 여부 (다음 버튼 비활성화용) |
 
-**제약**: 오늘보다 미래 날짜에서는 체크 버튼 비활성화
+**제약**: 오늘보다 미래 날짜에서는 체크 버튼 비활성화, 다음 버튼도 비활성화
 
 ---
 
