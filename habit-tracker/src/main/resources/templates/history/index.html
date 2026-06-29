@@ -25,9 +25,9 @@
         </div>
         <a th:href="@{/history(date=${next})}"
            class="btn btn-outline-secondary nav-date-btn"
-           th:classappend="${isToday} ? ' disabled' : ''"
-           th:attr="aria-disabled=${isToday},
-                    tabindex=${isToday} ? '-1' : '0'"
+           th:classappend="${isToday or isFuture} ? ' disabled' : ''"
+           th:attr="aria-disabled=${isToday or isFuture},
+                    tabindex=${isToday or isFuture} ? '-1' : '0'"
            aria-label="다음 날짜">
             <i class="bi bi-chevron-right"></i>
         </a>

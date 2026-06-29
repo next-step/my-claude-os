@@ -32,7 +32,7 @@
          - data-level 속성으로 레벨별 좌측 보더 색상 분기
          - xp-progress-fill: 초기 width=0%, JS가 data-percent 주입
          =================================================== -->
-    <div th:unless="${userLevel.name == 'LEGEND'}"
+    <div th:unless="${userLevel.number == 7}"
          class="xp-bar-container mb-3"
          th:attr="data-level=${userLevel.number}">
 
@@ -49,11 +49,11 @@
                            aria-valuenow=${xpProgressPercent},
                            aria-valuemin=0,
                            aria-valuemax=100,
-                           aria-label=|${xpInCurrentLevel} XP / ${xpToNextLevel} XP|"></div>
+                           aria-label=|XP 진행: ${xpInCurrentLevel} / ${xpLevelRange} (${xpProgressPercent}%)|"></div>
         </div>
 
         <div class="xp-text">
-            <span th:text="${xpInCurrentLevel}"></span> / <span th:text="${xpToNextLevel}"></span> XP
+            <span th:text="${xpInCurrentLevel}"></span> / <span th:text="${xpLevelRange}"></span> XP
         </div>
     </div>
 
@@ -62,7 +62,7 @@
          - 프로그레스 바 없음 / XP 수치 없음
          - shimmer 골드 카드 + "★ 최고 레벨 달성 ★"
          =================================================== -->
-    <div th:if="${userLevel.name == 'LEGEND'}"
+    <div th:if="${userLevel.number == 7}"
          class="xp-bar-container xp-bar-legend mb-3">
 
         <div class="xp-bar-header">

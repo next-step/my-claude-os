@@ -24,7 +24,7 @@
          - rates7이 비었을 때 표시
          - bi-bar-chart: 통계 화면 맥락과 일치
          =================================================== -->
-    <div th:if="${rates7 == null or rates7.isEmpty()}" class="text-center py-5">
+    <div th:if="${!hasActiveRoutines}" class="text-center py-5">
         <i class="bi bi-bar-chart" style="font-size: 3rem; color: var(--color-text-3);"></i>
         <p class="fw-semibold mt-3 mb-1" style="font-size: 15px; color: var(--color-text-2);">
             아직 기록이 없어요
@@ -36,7 +36,7 @@
     </div>
 
     <!-- 데이터가 있을 때만 차트/목록 표시 -->
-    <div th:unless="${rates7 == null or rates7.isEmpty()}">
+    <div th:if="${hasActiveRoutines}">
 
         <!-- ===================================================
              7일 바 차트
