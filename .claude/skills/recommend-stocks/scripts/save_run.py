@@ -22,16 +22,52 @@
      "note":"안정성 1위"}                              # 선택: 추천 맥락의 한 줄(분석 근거 아님)
   ],
   "excluded_sample": [{"name":"삼성전자","reason":"PER 26.3 > 25 (과열)"}]
+  # excluded_sample[].price 는 생략 가능 — 저장 시 quote.py 로 '당시가'를 채워 박제한다(회고 정량비교용).
+  # excluded_sample[].code 가 있으면 종목코드로 정확 조회. no_fetch:true 면 당시가 조회를 생략한다.
 }
 """
 from __future__ import annotations
 import datetime
+import importlib.util
 import json
 import os
 import re
 import sys
 
 REC_DIR = os.path.join(os.getcwd(), "data", "recommendations")
+
+# 탈락 종목의 '당시가'(추천 시점가)를 박제하려고 analyze-company의 quote.py 를 재사용한다.
+# 회고가 "빠뜨린 종목이 그 뒤 올랐나"를 정량 비교하려면 기준가가 있어야 하는데, 예전엔 미기록이라
+# 정성 점검밖에 못 했다(evaluate_records.py 의 '탈락 당시 가격 미기록' 한계). 이 칸을 그때 채운다.
+_QUOTE = os.path.normpath(os.path.join(
+    os.path.dirname(__file__), "..", "..", "analyze-company", "scripts", "quote.py"))
+
+
+def _load_quote():
+    """quote.py 를 모듈로 로드(현재가의 단일 진실원천 재사용). 실패하면 None → 당시가 생략."""
+    if not os.path.exists(_QUOTE):
+        return None
+    spec = importlib.util.spec_from_file_location("quote", _QUOTE)
+    mod = importlib.util.module_from_spec(spec)
+    try:
+        spec.loader.exec_module(mod)  # type: ignore[union-attr]
+        return mod
+    except Exception:
+        return None
+
+
+def _excluded_price(quote_mod, e: dict):
+    """탈락 종목의 당시가. 입력에 price 가 있으면 그대로, 없으면 quote.py 로 조회(실패 시 None)."""
+    if e.get("price") is not None:
+        return e["price"]
+    if quote_mod is None:
+        return None
+    try:
+        code = e.get("code") or quote_mod.resolve_code(e.get("name", ""))
+        q = quote_mod.fetch_quote(code) if code else None
+        return (q or {}).get("price")
+    except Exception:
+        return None
 
 
 def _read_analysis_fm(ref: str) -> dict:
@@ -119,7 +155,9 @@ def render(data: dict) -> str:
     if excluded:
         body.append("\n## 탈락 표본 (회고용 — 빠뜨린 종목 검증)\n")
         for e in excluded:
-            body.append(f"- {e.get('name','')}: {e.get('reason','')}")
+            px = e.get("price")
+            px_str = f" (당시가 {px})" if px is not None else ""
+            body.append(f"- {e.get('name','')}: {e.get('reason','')}{px_str}")
     body.append("\n## ⚠️ 유의")
     body.append("- 웹 데이터 기반 참고 자료이며 투자 권유가 아니다. 실제 매매·주문은 사람이 결정한다.")
     return "\n".join(fm) + "\n" + "\n".join(body) + "\n"
@@ -128,6 +166,14 @@ def render(data: dict) -> str:
 def main() -> int:
     raw = open(sys.argv[1], encoding="utf-8").read() if len(sys.argv) > 1 else sys.stdin.read()
     data = json.loads(raw)
+    # 탈락 종목 당시가 박제: 입력에 price 가 없으면 저장 시점에 quote.py 로 한 번 조회해 채운다.
+    # (no_fetch=true 면 네트워크 생략 — 오프라인/테스트.)
+    quote_mod = None if data.get("no_fetch") else _load_quote()
+    for e in data.get("excluded_sample", []):
+        if e.get("price") is None:
+            px = _excluded_price(quote_mod, e)
+            if px is not None:
+                e["price"] = px
     run_date = data.get("run_date") or datetime.date.today().isoformat()
     path = _target_path(run_date)
     with open(path, "w", encoding="utf-8") as f:

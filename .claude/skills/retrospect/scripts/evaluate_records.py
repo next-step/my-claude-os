@@ -16,11 +16,21 @@ status 판정 규칙:
 - open/watching 만 재평가: 현재가 ≥ 목표 → hit_target / 현재가 ≤ 손절 → stopped / 그 사이 → watching.
 - 진입·목표·손절이 "산출 불가"였던 기록은 평가 불가 → status 그대로, 사유 표기.
 
-실제수익률: (현재가 − 진입가)/진입가. 진입가 없으면 분석 당시 현재가(price) 기준. 둘 다 없으면 null.
+수익률 — '미체결 진입갭'과 '체결가정 수익'을 분리한다(회의론자 회고 피드백 2026-06-30):
+- entry_gap_pct = (분석시점가 − 진입가)/진입가 — *구조적·고정값*. "진입가를 현재가보다 얼마나 아래(+)
+  /위(−)에 뒀나"(눌림목 대기 폭). 경과일과 무관하며 성과가 아니다. (예전 actual_return_pct 가 0일차에
+  실제로 잰 게 이것 — 성과로 오독되던 값을 이 이름으로 정직하게 박는다.)
+- return_if_filled_pct = (현재가 − 진입가)/진입가 — *체결을 가정한* 수익. entry_filled 가 참일 때만 의미.
+- entry_filled = 분석일 이후 일중 저가가 진입가 이하로 내려와 '체결 가정'이 성립했나(ohlcv 경과구간).
+- mfe_pct / mae_pct = 체결 이후 최대 유리/불리 폭(휩쏘에 털렸는지 사후 판정). 미체결이면 null.
+- atr_pct_at_analysis = 진입 시점 변동성 스냅샷(분석 frontmatter atr_pct). 손절폭/ATR 사후 재현용.
 
 사용:  python3 evaluate_records.py                 # data/analyses 전체 평가
-       python3 evaluate_records.py --no-fetch      # 현재가 조회 생략(오프라인/테스트 — status 미판정)
-출력:  {"as_of","evaluated":[...],"excluded_context":[...],"errors":[...]} JSON
+       python3 evaluate_records.py --no-fetch      # 현재가·ohlcv 조회 생략(오프라인 — status 미판정)
+       python3 evaluate_records.py --no-ohlcv      # 현재가만 조회, 경과구간 ohlcv(체결/MFE/MAE) 생략
+출력:  {"as_of","evaluated":[...],"excluded_context":[...],"summary":{...},"errors":[...]} JSON
+  - summary.by_context 로 standalone(개별 분석)과 recommend-stocks(추천 바스켓)를 분리 집계한다
+    (선정 논리가 다른 표본을 한 통계로 섞으면 배점 예측력 검증이 왜곡된다 — 펀더멘털 회고 피드백).
 """
 from __future__ import annotations
 import argparse
@@ -35,22 +45,71 @@ import sys
 ANALYSES_DIR = os.path.join(os.getcwd(), "data", "analyses")
 REC_DIR = os.path.join(os.getcwd(), "data", "recommendations")
 
-# analyze-company 의 quote.py 를 재사용(현재가의 단일 진실원천). 경로는 이 파일 기준 상대.
-_QUOTE = os.path.normpath(os.path.join(
-    os.path.dirname(__file__), "..", "..", "analyze-company", "scripts", "quote.py"))
+# analyze-company 의 quote.py / ohlcv.py 를 재사용(수치의 단일 진실원천). 경로는 이 파일 기준 상대.
+_AC_SCRIPTS = os.path.normpath(os.path.join(
+    os.path.dirname(__file__), "..", "..", "analyze-company", "scripts"))
+_QUOTE = os.path.join(_AC_SCRIPTS, "quote.py")
+_OHLCV = os.path.join(_AC_SCRIPTS, "ohlcv.py")
 
 
-def _load_quote():
-    """quote.py 를 모듈로 로드해 fetch_quote/resolve_code 를 빌려 쓴다. 실패하면 None."""
-    if not os.path.exists(_QUOTE):
+def _load_module(path: str, name: str):
+    """analyze-company 스크립트를 모듈로 로드해 함수를 빌려 쓴다. 실패하면 None(그 기능만 비활성)."""
+    if not os.path.exists(path):
         return None
-    spec = importlib.util.spec_from_file_location("quote", _QUOTE)
+    spec = importlib.util.spec_from_file_location(name, path)
     mod = importlib.util.module_from_spec(spec)
     try:
         spec.loader.exec_module(mod)  # type: ignore[union-attr]
         return mod
     except Exception:
         return None
+
+
+def _load_quote():
+    """quote.py 모듈(fetch_quote/resolve_code). 실패하면 None."""
+    return _load_module(_QUOTE, "quote")
+
+
+def _load_ohlcv():
+    """ohlcv.py 모듈(fetch_ohlcv). 실패하면 None — 체결/MFE/MAE 만 비활성, status 판정은 유지."""
+    return _load_module(_OHLCV, "ohlcv")
+
+
+def _excursion(ohlcv_mod, code, analysis_date, as_of, entry, cache: dict) -> dict:
+    """경과 구간 [analysis_date..as_of] 의 일별 OHLCV로 진입 체결 여부·MFE/MAE를 결정론적으로 산출.
+
+    - entry_filled: 분석일 이후 어느 거래일이든 저가 ≤ 진입가면 '체결 가정' 성립(True).
+    - mfe_pct/mae_pct: 체결일 이후 (최고가/최저가 − 진입가)/진입가 — 휩쏘에 털렸는지 사후 판정용.
+    조회 실패·데이터 없음·진입가 없음이면 모두 None(판정 보류, 크래시 금지)."""
+    res = {"entry_filled": None, "mfe_pct": None, "mae_pct": None}
+    if ohlcv_mod is None or not code or entry is None:
+        return res
+    bars = cache.get(code)
+    if bars is None:
+        elapsed = (as_of - analysis_date).days if analysis_date else 0
+        # 경과 달력일 → 거래일 여유분(+주말분)으로 넉넉히, 최소 12거래일.
+        want = max(int((elapsed or 0) * 5 / 7) + 6, 12)
+        try:
+            bars = ohlcv_mod.fetch_ohlcv(code, days=want) or []
+        except Exception:
+            bars = []
+        cache[code] = bars
+    if not bars:
+        return res
+    start = analysis_date.isoformat() if analysis_date else None
+    win = [b for b in bars if start is None or b["date"].replace(".", "-") >= start]
+    if not win:
+        return res
+    fill_idx = next((i for i, b in enumerate(win) if b.get("low") is not None and b["low"] <= entry), None)
+    res["entry_filled"] = fill_idx is not None
+    if fill_idx is None:
+        return res
+    post = win[fill_idx:]
+    hi = max(b["high"] for b in post)
+    lo = min(b["low"] for b in post)
+    res["mfe_pct"] = round((hi - entry) / entry * 100, 1)
+    res["mae_pct"] = round((lo - entry) / entry * 100, 1)
+    return res
 
 
 def _parse_frontmatter(text: str) -> dict:
@@ -101,9 +160,10 @@ def _days(date_str: str, as_of: datetime.date) -> int | None:
         return None
 
 
-def evaluate(quote_mod, as_of: datetime.date, fetch: bool) -> dict:
+def evaluate(quote_mod, ohlcv_mod, as_of: datetime.date, fetch: bool) -> dict:
     out = {"as_of": as_of.isoformat(), "evaluated": [],
            "excluded_context": [], "errors": []}
+    ohlcv_cache: dict = {}                    # 종목별 OHLCV 1회만 조회
 
     files = sorted(glob.glob(os.path.join(ANALYSES_DIR, "*.md")))
     if not files:
@@ -140,20 +200,35 @@ def evaluate(quote_mod, as_of: datetime.date, fetch: bool) -> dict:
         cur = current_price(code, name)
         new_status, reason = _judge(prev, cur, target, stop)
 
-        base = entry if entry is not None else price0   # 수익률 기준가
-        actual_return_pct = None
-        if cur is not None and base:
-            actual_return_pct = round((cur - base) / base * 100, 1)
+        try:
+            analysis_date = datetime.date.fromisoformat(fm.get("date", ""))
+        except (ValueError, TypeError):
+            analysis_date = None
+
+        # 진입갭(구조적·고정) vs 체결가정 수익(현재가 의존)을 분리해 성과 오독을 막는다.
+        entry_gap_pct = None
+        if entry and price0 is not None:
+            entry_gap_pct = round((price0 - entry) / entry * 100, 1)
+        return_if_filled_pct = None
+        if entry and cur is not None:
+            return_if_filled_pct = round((cur - entry) / entry * 100, 1)
+
+        # 경과 구간 OHLCV로 진입 체결·MFE/MAE 산출(ohlcv_mod None 이면 전부 null — self-guard).
+        exc = _excursion(ohlcv_mod, code, analysis_date, as_of, entry, ohlcv_cache)
 
         out["evaluated"].append({
             "file": ref, "date": fm.get("date", ""), "name": name, "code": code,
             "context": fm.get("context", ""),
             "entry": entry, "target": target, "stop": stop,
             "expected_return_pct": _num(fm.get("expected_return_pct")),
+            "atr_pct_at_analysis": _num(fm.get("atr_pct")),
             "price_at_analysis": price0, "current_price": cur,
             "prev_status": prev, "new_status": new_status, "status_changed": new_status != prev,
             "judge_reason": reason,
-            "actual_return_pct": actual_return_pct,
+            "entry_gap_pct": entry_gap_pct,
+            "entry_filled": exc["entry_filled"],
+            "return_if_filled_pct": return_if_filled_pct,
+            "mfe_pct": exc["mfe_pct"], "mae_pct": exc["mae_pct"],
             "days_elapsed": _days(fm.get("date", ""), as_of),
         })
 
@@ -171,26 +246,52 @@ def evaluate(quote_mod, as_of: datetime.date, fetch: bool) -> dict:
                     "note": "탈락 당시 가격 미기록 → 등락 정량비교 불가(정성 점검)",
                 })
 
-    # 집계 요약(전문가·리포트가 바로 쓰도록)
+    # 집계 요약(전문가·리포트가 바로 쓰도록).
     ev = out["evaluated"]
     out["summary"] = {
-        "total": len(ev),
-        "hit_target": sum(1 for e in ev if e["new_status"] == "hit_target"),
-        "stopped": sum(1 for e in ev if e["new_status"] == "stopped"),
-        "watching": sum(1 for e in ev if e["new_status"] == "watching"),
-        "open_or_unrated": sum(1 for e in ev if e["new_status"] == "open"),
+        **_track_summary(ev),
         "status_changes": [e for e in ev if e["status_changed"]],
-        "avg_actual_return_pct": (
-            round(sum(e["actual_return_pct"] for e in ev if e["actual_return_pct"] is not None)
-                  / max(1, sum(1 for e in ev if e["actual_return_pct"] is not None)), 1)
-            if any(e["actual_return_pct"] is not None for e in ev) else None),
+        # standalone(개별)과 recommend-stocks(바스켓)는 선정 논리가 달라 분리 집계한다.
+        "by_context": {ctx: _track_summary(rows)
+                       for ctx, rows in sorted(_group_by_context(ev).items())},
     }
     return out
 
 
+def _group_by_context(rows: list[dict]) -> dict:
+    g: dict[str, list] = {}
+    for e in rows:
+        g.setdefault(e.get("context") or "uncategorized", []).append(e)
+    return g
+
+
+def _avg(vals: list[float]):
+    return round(sum(vals) / len(vals), 1) if vals else None
+
+
+def _track_summary(rows: list[dict]) -> dict:
+    """한 묶음의 status 분포 + '진입갭(구조)'·'체결가정 수익(체결분만)'을 분리 집계.
+    평균 진입갭은 성과가 아니라 '진입가를 얼마나 아래 뒀나'이고, 평균 체결수익은 entry_filled 분만 센다."""
+    gaps = [e["entry_gap_pct"] for e in rows if e.get("entry_gap_pct") is not None]
+    filled = [e["return_if_filled_pct"] for e in rows
+              if e.get("entry_filled") and e.get("return_if_filled_pct") is not None]
+    return {
+        "total": len(rows),
+        "hit_target": sum(1 for e in rows if e["new_status"] == "hit_target"),
+        "stopped": sum(1 for e in rows if e["new_status"] == "stopped"),
+        "watching": sum(1 for e in rows if e["new_status"] == "watching"),
+        "open_or_unrated": sum(1 for e in rows if e["new_status"] == "open"),
+        "entry_filled_count": sum(1 for e in rows if e.get("entry_filled")),
+        "avg_entry_gap_pct": _avg(gaps),               # 구조적 — 성과 아님
+        "avg_return_if_filled_pct": _avg(filled),      # 체결 가정 수익(체결분만)
+    }
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="회고 1단계: 분석 기록 vs 현재가 사실 판정")
-    ap.add_argument("--no-fetch", action="store_true", help="현재가 조회 생략(오프라인/테스트)")
+    ap.add_argument("--no-fetch", action="store_true", help="현재가·ohlcv 조회 생략(오프라인/테스트)")
+    ap.add_argument("--no-ohlcv", action="store_true",
+                    help="현재가는 조회하되 경과구간 ohlcv(체결/MFE/MAE)는 생략(빠른 실행)")
     ap.add_argument("--as-of", help="기준일 YYYY-MM-DD (생략 시 오늘)")
     args = ap.parse_args()
 
@@ -200,7 +301,9 @@ def main() -> int:
         # quote.py 를 못 불러오면 현재가 없이라도 기록 목록은 내보낸다(판정만 보류).
         print(json.dumps({"warning": f"quote.py 로드 실패: {_QUOTE} — 현재가 없이 진행"},
                          ensure_ascii=False), file=sys.stderr)
-    result = evaluate(quote_mod, as_of, fetch=not args.no_fetch and quote_mod is not None)
+    # ohlcv 는 현재가가 있을 때만(=온라인) 의미. --no-ohlcv 면 체결/MFE/MAE 만 끈다.
+    ohlcv_mod = None if (args.no_fetch or args.no_ohlcv) else _load_ohlcv()
+    result = evaluate(quote_mod, ohlcv_mod, as_of, fetch=not args.no_fetch and quote_mod is not None)
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0
 

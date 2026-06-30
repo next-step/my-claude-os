@@ -19,6 +19,7 @@
   "week52_high": 152000, "week52_low": 95000,   # 선택
   "entry": 137000, "target": 165000, "stop": 128000,
   "expected_return_pct": 18.7,          # 선택. 없으면 price→target 으로 계산
+  "atr_pct": 6.6,                       # 선택. 진입 시점 변동성(ohlcv.py) 스냅샷 — 회고가 손절폭/ATR 사후 재현용
   "summary": "한 줄 요약",
   "axes": {                             # 분석 기준: 어떤 축을 봤고 요약은 무엇인가
     "trend": "최근 1년 +12%, 지지 130k/저항 165k",
@@ -82,9 +83,9 @@ def render(data: dict, date: str) -> str:
     fm = ["---", f"date: {date}",
           f"code: {_yaml_scalar(data.get('code',''))}",
           f"name: {_yaml_scalar(name)}"]
-    for k in ("price", "week52_high", "week52_low", "entry", "target", "stop"):
+    for k in ("price", "week52_high", "week52_low", "entry", "target", "stop", "atr_pct"):
         if data.get(k) is not None:
-            fm.append(f"{k}: {_yaml_scalar(data[k])}")
+            fm.append(f"{k}: {_yaml_scalar(data[k])}")  # atr_pct=진입 시점 변동성 스냅샷(회고가 손절폭/ATR 사후 재현용)
     if exp is not None:
         fm.append(f"expected_return_pct: {_yaml_scalar(exp)}")
     fm.append(f"context: {_yaml_scalar(data.get('context','standalone'))}")
