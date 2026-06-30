@@ -113,7 +113,7 @@
 |----|---------------|-----------|
 | 기술적 | `stock-trend-researcher` | 최근 1년 주가 흐름 (지지/저항·컨센서스는 색깔로만 — 정밀값은 스크립트가 확정) |
 | 심리 | `company-news-researcher` | 회사 관련 최근 뉴스 |
-| 거시 | `market-news-researcher` | 대한민국 경제(거시) 뉴스 |
+| 거시 | `kr-macro-researcher` ⚙️공유 | 대한민국 거시·시장 환경(코스피·금리·환율·업종). **retrospect 와 공유**하는 수집 전용 에이전트 — "최근 2~4주(현재 환경)" 기간으로 호출 |
 
 **정밀 정량 — 결정론적 스크립트** (네이버 직접 파싱, 진입/목표/손절의 근거 숫자)
 
@@ -153,6 +153,8 @@ B. [토론 루프] 전문가 4인 동적 토론 (최대 5R, 수렴하면 조기 
 C. [종합] update_status.py 로 원본 status 갱신 + save_retro.py 로 회고 리포트 + 튜닝안
 ```
 
+**거시 사실은 토론 전에 한 번만 수집한다(공유 에이전트).** 토론에 들어가기 전, 메인이 `kr-macro-researcher`(analyze-company 와 **공유**하는 수집 전용 에이전트)를 1회 호출해 *가장 이른 분석일~기준일* 구간의 시장 환경(코스피 변동·금리·환율·업종)을 확정하고, 그 **거시 사실판**을 4인에게 똑같이 공유한다. *왜:* 예전엔 거시 전문가가 라운드마다 직접 검색해 ① 중복이고 ② 4인이 서로 다른 시장 사실 위에서 다퉜다. `evaluate_records.py`가 종목 사실을 한 번 확정하듯 거시도 한 번 확정한다 — "사실은 수집, 해석은 토론"을 거시에 적용. 그래서 `retro-macro-analyst`는 웹검색을 떼고 **토론 전담(Read만)**으로 슬림화했다.
+
 ## A. 사실 판정 (결정론적, `scripts/evaluate_records.py`)
 - `data/analyses/*.md` 전체를 읽어 각 종목 현재가(analyze-company `quote.py` **재사용** — 현재가 진실원천 한 곳)와 진입/목표/손절을 대조해 `status`(hit_target | stopped | watching | open)·실현수익률·경과일을 산출.
 - **터미널 상태(hit_target/stopped)는 sticky** — 한 번 도달/손절이면 되돌리지 않는다. *왜:* 예측의 성패는 일어난 '사건'이라, 목표 찍고 내려와도 "그땐 맞았다"가 진실. (주1회 스냅샷이라 실행 사이 장중 돌파는 놓칠 수 있음 — 알려진 한계.)
@@ -165,7 +167,7 @@ C. [종합] update_status.py 로 원본 status 갱신 + save_retro.py 로 회고
 |----|------|------|
 | `retro-technical-analyst` | 진입 타이밍·지지/저항·변동성 | Read |
 | `retro-fundamental-analyst` | 밸류(고/저평가)·재무 안정성·목표가 | Read |
-| `retro-macro-analyst` | 시장 환경(지수·금리·환율) — 실력 vs 시장베타 분리 | Read +WebSearch |
+| `retro-macro-analyst` | 시장 환경(지수·금리·환율) — 실력 vs 시장베타 분리 | Read (거시 사실은 메인이 `kr-macro-researcher`로 수집해 공유) |
 | `retro-skeptic` (회의론자) | 실력 vs 운·표본부족·과적합·생존자편향 | Read |
 
 - **R1**: 4인 동시 소집(병렬), 각자 개회 주장 + `### 합의 여부`에 `AGREE`/`DISSENT:` 토큰.
