@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('오늘')}"></head>
+<body class="bg-light">
+
+<nav th:replace="~{fragments/layout :: nav('today')}"></nav>
+
+<div class="container py-4">
+
+    <!-- ===================================================
+         레벨업 배너 (조건부 렌더링)
+         - leveledUp=true 일 때만 DOM에 존재
+         - JS가 .visible 추가 → 슬라이드 인 (0.3s)
+         - 4.5초 후 자동 페이드 아웃 → DOM 제거
+         =================================================== -->
+    <div th:if="${leveledUp}"
+         id="levelup-banner"
+         class="level-up-banner"
+         role="alert"
+         aria-live="polite">
+        <div class="banner-content">
+            <span class="banner-emoji" th:text="${prevLevelEmoji}"></span>
+            <span>→</span>
+            <span class="banner-emoji" th:text="${newLevelEmoji}"></span>
+            <span th:text="|${newLevelName}에 도달했어요!|"></span>
+        </div>
+        <button class="banner-close" type="button" aria-label="배너 닫기">✕</button>
+    </div>
+
+    <!-- ===================================================
+         XP 바 컴포넌트 — 일반 레벨 (Lv.1~6)
+         - data-level 속성으로 레벨별 좌측 보더 색상 분기
+         - xp-progress-fill: 초기 width=0%, JS가 data-percent 주입
+         =================================================== -->
+    <div th:unless="${userLevel.number == 7}"
+         class="xp-bar-container mb-3"
+         th:attr="data-level=${userLevel.number}">
+
+        <div class="xp-bar-header">
+            <span class="xp-level-emoji" th:text="${userLevel.emoji}"></span>
+            <span class="fw-semibold" th:text="${userLevel.getName()}"></span>
+            <span class="text-muted ms-1">Lv.<span th:text="${userLevel.number}"></span></span>
+        </div>
+
+        <div class="xp-progress-track">
+            <div class="xp-progress-fill"
+                 role="progressbar"
+                 th:attr="data-percent=${xpProgressPercent},
+                           aria-valuenow=${xpProgressPercent},
+                           aria-valuemin=0,
+                           aria-valuemax=100,
+                           aria-label=|XP 진행: ${xpInCurrentLevel} / ${xpLevelRange} (${xpProgressPercent}%)|"></div>
+        </div>
+
+        <div class="xp-text">
+            <span th:text="${xpInCurrentLevel}"></span> / <span th:text="${xpLevelRange}"></span> XP
+        </div>
+    </div>
+
+    <!-- ===================================================
+         XP 바 컴포넌트 — 만렙 (Lv.7 LEGEND)
+         - 프로그레스 바 없음 / XP 수치 없음
+         - shimmer 골드 카드 + "★ 최고 레벨 달성 ★"
+         =================================================== -->
+    <div th:if="${userLevel.number == 7}"
+         class="xp-bar-container xp-bar-legend mb-3">
+
+        <div class="xp-bar-header">
+            <span class="xp-level-emoji xp-level-emoji--legend" th:text="${userLevel.emoji}"></span>
+            <span class="fw-semibold" th:text="${userLevel.getName()}"></span>
+            <span class="text-muted ms-1">Lv.<span th:text="${userLevel.number}"></span></span>
+        </div>
+
+        <div class="xp-legend-text">★ 최고 레벨 달성 ★</div>
+    </div>
+
+    <!-- ===================================================
+         헤더: 오늘의 루틴 제목 + 날짜
+         - 100% 달성 시: 성공 배경 틴트 + 축하 메시지 (POLICY §4-1)
+         - 나머지: 제목 + 날짜만 (display-6 완료율 숫자 블록 제거)
+         =================================================== -->
+
+    <!-- 100% 달성 상태 헤더 -->
+    <div th:if="${completionRate == 100}"
+         class="rounded-3 p-3 mb-3"
+         style="background-color: var(--color-success-light);">
+        <div class="d-flex align-items-center gap-2 mb-1">
+            <h4 class="mb-0 fw-bold">오늘의 루틴</h4>
+            <span aria-hidden="true">🎉</span>
+        </div>
+        <small class="text-muted"
+               th:text="${#temporals.format(today, 'yyyy년 M월 d일 (E)', new java.util.Locale('ko'))}"></small>
+        <p class="text-success fw-semibold mb-0 mt-2" style="font-size: 14px;">
+            오늘 모든 루틴 완료! 정말 대단해요 :)
+        </p>
+    </div>
+
+    <!-- 일반 상태 헤더 -->
+    <div th:unless="${completionRate == 100}" class="mb-3">
+        <h4 class="mb-0 fw-bold">오늘의 루틴</h4>
+        <small class="text-muted"
+               th:text="${#temporals.format(today, 'yyyy년 M월 d일 (E)', new java.util.Locale('ko'))}"></small>
+    </div>
+
+    <!-- ===================================================
+         진행 바 + "N/M 완료" 카운트 텍스트 (루틴이 있을 때만)
+         - height 10px: 8px보다 두꺼워 존재감 강화
+         - 색상 분기: 0–49% secondary(회색), 50–99% primary(파랑), 100% success(초록)
+         - completedCount: Spring EL 컬렉션 셀렉션으로 백엔드 속성 추가 없이 계산
+         =================================================== -->
+    <div th:if="${!#lists.isEmpty(todayRoutines)}"
+         th:with="totalCount=${#lists.size(todayRoutines)},
+                  completedCount=${todayRoutines.?[completed].size()}"
+         class="d-flex align-items-center gap-2 mb-4">
+        <div class="progress flex-grow-1" style="height: 10px;">
+            <div class="progress-bar"
+                 th:classappend="${completionRate == 100} ? 'bg-success' : (${completionRate >= 50} ? 'bg-primary' : 'bg-secondary')"
+                 role="progressbar"
+                 th:style="'width: ' + ${completionRate} + '%'"
+                 th:attr="aria-valuenow=${completionRate},
+                           aria-valuemin=0,
+                           aria-valuemax=100,
+                           aria-label=|오늘 루틴 ${completedCount}/${totalCount} 완료|"></div>
+        </div>
+        <span class="completion-count"
+              th:text="|${completedCount}/${totalCount} 완료|"></span>
+    </div>
+
+    <!-- ===================================================
+         빈 상태: 오늘 예정된 루틴이 없을 때 (POLICY §4-2, §4-3)
+         - bi-calendar-plus: Habit Tracker 맥락에 맞는 아이콘 (bi-inbox 제거)
+         - 따뜻한 메시지 + 행동 유도 CTA
+         =================================================== -->
+    <div th:if="${#lists.isEmpty(todayRoutines)}" class="text-center py-5">
+        <i class="bi bi-calendar-plus" style="font-size: 3rem; color: var(--color-text-3);"></i>
+        <p class="fw-semibold mt-3 mb-1" style="font-size: 15px; color: var(--color-text-1);">
+            오늘은 쉬는 날이에요
+        </p>
+        <p class="mb-3" style="font-size: 14px; color: var(--color-text-2);">
+            새 루틴을 추가하면 내일부터 시작돼요
+        </p>
+        <a th:href="@{/routines}" class="btn btn-primary">
+            루틴 추가하기 →
+        </a>
+    </div>
+
+    <!-- ===================================================
+         루틴 목록
+         - 완료 배지 제거: border-left + 체크 아이콘 + line-through 3가지로 충분
+         =================================================== -->
+    <div class="d-flex flex-column gap-2" th:if="${!#lists.isEmpty(todayRoutines)}">
+        <div th:each="r : ${todayRoutines}"
+             class="card border-0 shadow-sm routine-card"
+             th:classappend="${r.completed} ? ' completed' : ''">
+            <div class="card-body d-flex align-items-center py-3">
+
+                <!-- 체크 버튼 (PRG 패턴) -->
+                <form th:action="@{/check/{id}(id=${r.id})}" method="post" class="me-3">
+                    <button type="submit" class="check-btn"
+                            th:attr="aria-label=${r.completed} ? '완료 취소: ' + ${r.name} : '완료로 표시: ' + ${r.name}">
+                        <i class="bi fs-4"
+                           th:classappend="${r.completed} ? 'bi-check-circle-fill text-success' : 'bi-circle text-secondary'"></i>
+                    </button>
+                </form>
+
+                <!-- 루틴 정보 -->
+                <div class="flex-grow-1">
+                    <div class="fw-semibold"
+                         th:text="${r.name}"
+                         th:classappend="${r.completed} ? 'text-muted text-decoration-line-through' : ''"></div>
+                    <small class="text-muted"
+                           th:if="${r.description != null and !r.description.isEmpty()}"
+                           th:text="${r.description}"></small>
+                </div>
+
+                <!-- 완료 배지 제거됨: border-left + 아이콘 + line-through로 충분히 전달 -->
+
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script th:src="@{/js/xp.js}"></script>
+</body>
+</html>

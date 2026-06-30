@@ -1,0 +1,16 @@
+# Spring Boot 빌드 아티팩트
+habit-tracker/build/
+habit-tracker/.gradle/
+habit-tracker/bin/
+habit-tracker/data/
+habit-tracker/out/
+
+# Claude 로컬 설정 (민감 정보 포함 가능)
+.claude/settings.local.json
+.claude/skill-usage.json
+
+# 자동 생성 로그 (런타임 데이터, 버전 관리 불필요)
+.claude/logs/
+
+# 서브 디렉토리에 훅이 잘못 생성한 .claude (절대경로 훅으로 방지됨)
+habit-tracker/.claude/
