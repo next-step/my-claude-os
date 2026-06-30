@@ -5,12 +5,11 @@
 <!-- 이 PR이 거친 OS 개발 흐름. GitHub가 아래 mermaid를 다이어그램으로 그려줌(리뷰 시 흐름 파악용). 이 섹션은 항상 포함된다. -->
 ```mermaid
 flowchart LR
-  R["① 요구사항"] --> P["② PRD<br/>작성+검토"]
-  P --> PL["③ Plan<br/>재활용 조사+설계"]
-  PL --> G{"사람 검토<br/>게이트"}
-  G -->|승인| I["④ 구현<br/>/impl 디스패처"]
+  P["① PRD<br/>요구사항→작성→검토"] --> PL["② Plan<br/>재활용 조사+설계"]
+  PL --> G{"사람 검토 게이트<br/>(①·② 각 단계 내장)"}
+  G -->|승인| I["③ 구현<br/>/impl 디스패처"]
   I --> V["/verify<br/>light·full"]
-  V -->|통과| F["⑤ 마무리<br/>commit·push·PR"]
+  V -->|통과| F["④ 마무리<br/>commit·push·PR"]
   V -->|구현결함| I
   V -->|설계문제| PL
 ```
