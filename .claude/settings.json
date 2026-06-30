@@ -10,6 +10,16 @@
             "statusMessage": "스킬 호출 기록 중..."
           }
         ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/check-abs-paths.py\"",
+            "statusMessage": "절대경로 검사 중..."
+          }
+        ]
       }
     ],
     "SessionEnd": [
