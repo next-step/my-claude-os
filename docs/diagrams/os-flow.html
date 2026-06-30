@@ -62,6 +62,9 @@
   .legend b{color:var(--ink);}
   .sw{display:inline-block;width:11px;height:11px;border-radius:3px;border:1px solid;vertical-align:middle;margin-right:4px;}
   .gate .g3{display:block;font-size:9px;font-weight:700;color:#a16207;margin-top:1px;}
+  .hookband{margin-top:13px;background:var(--hook);border:1px solid #fde68a;border-left:5px solid var(--hook-b);
+            border-radius:10px;padding:9px 13px;font-size:11.5px;line-height:1.45;color:#92400e;}
+  code{background:#fff7e6;border:1px solid #fcd34d;border-radius:4px;padding:0 4px;font-size:10.5px;color:#92400e;}
 </style>
 </head>
 <body>
@@ -200,25 +203,32 @@
   <div class="stage">
     <div class="head">④ 마무리</div>
     <div class="row">
-      <div class="chip c-skill"><span class="t">/commit</span></div>
+      <div class="chip c-skill"><span class="t">/commit</span><span class="k">의미 단위 로컬 커밋</span></div>
       <span class="sep">→</span>
-      <div class="chip c-skill"><span class="t">/push</span></div>
+      <div class="chip c-skill"><span class="t">/push</span><span class="k">확인 후 원격</span></div>
       <span class="sep">→</span>
-      <div class="chip c-skill"><span class="t">/pr</span><span class="k">커밋분석 → PR본문(LLM)</span></div>
-      <span class="sep">→</span>
-      <div class="chip c-hook"><span class="t">훅: 템플릿+흐름도 강제</span></div>
-      <span class="sep">→</span>
-      <div class="chip c-human"><span class="t">미리보기 확인</span></div>
-      <span class="sep">→</span>
-      <div class="chip c-skill"><span class="t">GitHub PR</span><span class="k">step → jshans40</span></div>
+      <div class="chip c-skill"><span class="t">/pr</span><span class="k">커밋분석 → PR본문(LLM) → <b>gh pr create</b></span></div>
+    </div>
+    <div class="row" style="margin-top:9px;">
+      <div class="chip c-hook" style="flex:1;">
+        <span class="t">🪝 PR 템플릿 훅 — PreToolUse · Bash (차단형)</span>
+        <span class="k"><b>gh pr create 를 실행 직전 가로채</b> → PR 본문이 <code>.github/pull_request_template.md</code>(흐름도 포함) 틀을 따르는지 검사. 사람·AI가 깜빡해도 <b>기계가 강제</b>.</span>
+      </div>
+    </div>
+    <div class="verdict">
+      <span class="vlabel">검사 결과:</span>
+      <span class="vchip v-ok">✅ 준수 → 미리보기 확인 → GitHub PR 생성 (step → jshans40)</span>
+      <span class="vchip v-esc">✋ 미준수 → 차단(명령 실행 안 됨) — 본문 고쳐 다시</span>
     </div>
   </div>
+
+  <div class="hookband">🪝 <b>사용 통계 훅 — PostToolUse (기록형)</b> · ①~④ <b>모든 스킬 호출</b>이 끝날 때마다 자동으로 <code>.claude/skill-usage.log</code>에 기록 — 흐름 전 구간 상시 작동(관측·자기개선용, 흐름을 막지 않음)</div>
 
   <div class="legend">
     <span><span class="sw" style="background:var(--agent);border-color:#bfdbfe"></span><b>서브에이전트(빌트인)</b> general-purpose·Explore·Plan</span>
     <span><span class="sw" style="background:var(--custom);border-color:#ddd6fe"></span><b>reviewer</b> 공유 커스텀(/prd·/verify)</span>
     <span><span class="sw" style="background:var(--human);border-color:#f9a8d4"></span><b>사람</b></span>
-    <span><span class="sw" style="background:var(--hook);border-color:#fde68a"></span><b>훅</b></span>
+    <span><span class="sw" style="background:var(--hook);border-color:#fde68a"></span><b>훅</b> PR 템플릿(PreToolUse·차단형) · 사용 통계(PostToolUse·기록형)</span>
   </div>
 </body>
 </html>
