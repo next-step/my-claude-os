@@ -11,6 +11,16 @@
             "statusMessage": "스킬 호출 기록 중..."
           }
         ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/enforce-pr-template.sh\"",
+            "statusMessage": "PR 템플릿 강제 검사..."
+          }
+        ]
       }
     ],
     "UserPromptSubmit": [
