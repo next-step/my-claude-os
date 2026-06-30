@@ -1,6 +1,6 @@
 ---
 name: pr
-description: 현재 브랜치의 커밋들을 분석해 "무엇이 왜 바뀌었는지"를 LLM이 종합한 PR 제목·본문을 만들고, 사람 확인 후 gh로 PR을 연다. OS.md 흐름의 ⑤ 마무리(/commit·/push 다음). 본문은 .github/pull_request_template.md 틀을 따른다(PreToolUse 훅이 강제). 사용자가 "PR 올려줘", "PR 만들어줘", "리뷰 요청", "/pr"이라고 할 때 사용한다.
+description: 현재 브랜치의 커밋들을 분석해 "무엇이 왜 바뀌었는지"를 LLM이 종합한 PR 제목·본문을 만들고, 사람 확인 후 gh로 PR을 연다. OS.md 흐름의 ④ 마무리(/commit·/push 다음). 본문은 .github/pull_request_template.md 틀을 따른다(PreToolUse 훅이 강제). 사용자가 "PR 올려줘", "PR 만들어줘", "리뷰 요청", "/pr"이라고 할 때 사용한다.
 user-invocable: true
 allowed-tools:
   - Read
@@ -9,7 +9,7 @@ allowed-tools:
   - Task
 ---
 
-# /pr — 커밋 분석 → PR 생성 (⑤ 마무리)
+# /pr — 커밋 분석 → PR 생성 (④ 마무리)
 
 푸시된 브랜치의 **커밋들을 모아 LLM이 PR 제목·본문을 종합 생성**하고, **사람 확인 후** `gh`로 PR을 연다.
 본문은 [.github/pull_request_template.md](../../../.github/pull_request_template.md)의 틀을 따른다

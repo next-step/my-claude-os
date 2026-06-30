@@ -4,7 +4,7 @@
 
 이 저장소는 애플리케이션 소스 코드가 **0개**인 문서·스킬 기반 "개발 OS"다(`README.md`, `OS.md`, `.claude/skills/*/SKILL.md`, `docs/`). `.py` 파일·`pyproject.toml`·`requirements*.txt`·테스트 러너가 전무하고, FastAPI/JWT/SQLite/DB 관련 코드도 전혀 없다(`find . -name "*.py"` → 0건 확인). 따라서 **재활용할 기존 비즈니스 로직은 없으며, 전부 신규 구현**이다. 재활용 대상은 코드가 아니라 이 OS의 규약·패턴이다.
 
-- **개발 흐름·테스트 필수 원칙 (`OS.md` 원칙 3 / §2.④ / `CLAUDE.md` 규칙 3)**: 구현에 단위/통합 테스트 필수, 사람 검토(③ 게이트) 통과 전 구현 금지. 이 Plan은 ② 설계 산출물이며 구현은 범위 밖.
+- **개발 흐름·테스트 필수 원칙 (`OS.md` 원칙 3 / §2.③ / `CLAUDE.md` 규칙 3)**: 구현에 단위/통합 테스트 필수, 사람 검토 게이트 통과 전 구현 금지. 이 Plan은 ② 설계 산출물이며 구현은 범위 밖.
 - **개인 데이터·gitignore 패턴 (`.gitignore`, `skill-usage.log`)**: 비밀(JWT 시크릿)과 로컬 DB 파일은 절대 커밋하지 않는다 — `.gitignore`에 `.db`/`.env` 추가로 동일 정책 적용.
 - **컨벤션 (`OS.md` §6)**: 한국어 출력/문서, 커밋 접두사(`feat : `), 커밋 서명. 산출물 메시지·docstring·에러 안내를 한국어로.
 - **검증된 라이브러리 활용 (PRD 재활용 지도)**: "기존 코드 재활용"이 없으므로 표준 라이브러리를 적극 채택 — `FastAPI 0.111.1`, `pydantic v2`(FastAPI 0.111 동봉), `SQLAlchemy 2.x`(ORM), `python-jose[cryptography]`(JWT/HS256), 표준 라이브러리 `hashlib`(SHA-512)·`secrets`(솔트). 테스트는 `pytest` + FastAPI `TestClient`(httpx 기반).
@@ -132,7 +132,7 @@ my-claude-code-os/
 7. **앱 조립**: `main.py`에서 라우터·핸들러 등록.
 8. **통합 테스트**: `conftest.py`(임시 DB·테스트 시크릿·TestClient), `test_signup.py`/`test_login.py`.
 9. **문서/설정 마무리**: `OS.md` 표 갱신, `docs/plan/signup-login-api.md` 반영.
-10. **수동 검증**: `uvicorn app.main:app`로 기동, `/signup`→`/login`→토큰 디코드로 payload(sub=user_id)·만료 확인. (③ 검토 게이트 통과 후 구현 진입)
+10. **수동 검증**: `uvicorn app.main:app`로 기동, `/signup`→`/login`→토큰 디코드로 payload(sub=user_id)·만료 확인. (검토 게이트 통과 후 구현 진입)
 
 ## 테스트 전략 (단위/통합 — 필수)
 
