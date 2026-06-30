@@ -1,0 +1,49 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Skill",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "DIR=\"${CLAUDE_PROJECT_DIR:-$(pwd)}/.claude\"; mkdir -p \"$DIR\"; { printf '%s\\t' \"$(date '+%Y-%m-%dT%H:%M:%S')\"; jq -r '.tool_input.skill // \"unknown\"'; } >> \"$DIR/skill-usage.log\"",
+            "statusMessage": "스킬 호출 기록 중..."
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "F=$(jq -r '.tool_input.file_path // \"\"'); case \"$F\" in */data/analyses/*|*/data/recommendations/*|*/data/retros/*) echo \"기록 파일은 append-only 박제(불변)입니다. Edit/Write로 직접 수정하지 마세요. 변경은 스크립트로만: save_analysis.py(분석 저장) / update_status.py(회고 status 갱신) / save_run.py(추천 저장) / save_retro.py(회고 리포트). 대상: $F\" >&2; exit 2;; esac; exit 0",
+            "statusMessage": "기록 불변성 검사 중..."
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "F=$(jq -r '.tool_input.file_path // \"\"'); case \"$F\" in *.py) OUT=$(python3 -m py_compile \"$F\" 2>&1); if [ $? -ne 0 ]; then echo \"py_compile 실패 — 스크립트(진실원천)가 깨졌습니다: $F\" >&2; echo \"$OUT\" >&2; exit 2; fi;; esac; exit 0",
+            "statusMessage": "파이썬 스크립트 검증 중..."
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "DIR=\"${CLAUDE_PROJECT_DIR:-$(pwd)}/.claude\"; mkdir -p \"$DIR\"; P=$(jq -r '.prompt // \"\"'); NAME=$(printf '%s' \"$P\" | sed -nE 's#^[[:space:]]*/([A-Za-z0-9_-]+).*#\\1#p'); if [ -n \"$NAME\" ] && [ -d \"$DIR/skills/$NAME\" ]; then printf '%s\\t%s\\n' \"$(date '+%Y-%m-%dT%H:%M:%S')\" \"$NAME\" >> \"$DIR/skill-usage.log\"; fi; exit 0",
+            "statusMessage": "스킬 호출 기록 중..."
+          }
+        ]
+      }
+    ]
+  }
+}
