@@ -1,6 +1,8 @@
 ---
 name: visual-confidence
 description: AI 눈 판정을 같은 스크린샷에 대해 독립 블라인드로 N번 반복해, 판정의 일치율(안정성)·다수결·흔들림(flaky)을 측정한다. AI 판정은 비결정적이라 한 번 돌리면 운에 휘둘리므로, 여러 번 돌려 "이 판정이 안정적인가 / 사각지대가 일관되게 못 잡히는가"를 확인하는 용도. 사용자가 "판정 반복", "N번 돌려봐", "안정성 측정", "흔들리는 판정 찾아줘", "사각지대 일관성 확인", "visual-confidence" 등을 말할 때 사용한다. demo-app 에서 동작한다.
+model: sonnet
+effort: low
 ---
 
 # visual-confidence — AI 판정 안정성 측정 (N회 반복 + 다수결)

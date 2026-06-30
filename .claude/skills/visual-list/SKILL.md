@@ -1,6 +1,8 @@
 ---
 name: visual-list
 description: 시각 검증 시스템에 등록된 컴포넌트(검증 대상) 목록을 보여주고, 거기서 하나를 골라 검증(visual-check)을 바로 시작할 수 있는 진입점. 각 대상의 변형 개수와 검증 상태(촬영·AI판정·갤러리)를 표시한다. 사용자가 "등록된 거 목록", "시각 검증 대상 보여줘", "뭐뭐 등록돼 있어?", "시각 검증 시작", "visual-list" 등을 말할 때 사용한다. demo-app 에서 동작한다.
+model: haiku
+effort: low
 ---
 
 # visual-list — 검증 대상 목록 + 선택 진입점

@@ -2,6 +2,8 @@
 name: visual-judge
 description: 시각 검증의 "전문 눈" — 컴포넌트 스크린샷 한 장을 받아 깨졌나(error)/어색한가(warn)/멀쩡한가(ok)를 블라인드로 판정하고 한 줄 근거와 함께 반환하는 단일 판정 서브에이전트. visual-check(전체 검증)와 visual-confidence(반복 안정성)가 공유해서 호출하는 재사용 일꾼이다. 정답이나 다른 판정 결과를 모른 채 그림만 보고 판정한다.
 tools: Read
+model: sonnet
+effort: low
 ---
 
 # visual-judge — 단일 스크린샷 판정 (재사용 "전문 눈")

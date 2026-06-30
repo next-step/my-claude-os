@@ -1,6 +1,8 @@
 ---
 name: visual-regress
 description: 코드 변경 전후(before/after)로 공통 컴포넌트의 변형들을 다시 촬영해, "의도한 변경 말고 딸려서 바뀐 게 있나"를 잡는 시각 회귀 검증. 픽셀 비교(WHAT)로 바뀐 변형을 추리고, 공유 서브에이전트 visual-comparator(MATTER)가 그게 의도 외 변경인지 판정한다. 결과는 대화창 마크다운 표가 1순위, 빨간 줄 있을 때만 HTML 드릴다운. 사용자가 "회귀 검사", "바뀐 거 있나 봐줘", "before after 비교", "visual-regress", "내 변경이 딴 데 영향 줬나" 등을 말할 때 사용한다. demo-app 에서 동작한다.
+model: sonnet
+effort: medium
 ---
 
 # visual-regress — 코드 변경의 시각 회귀 검증 (오케스트레이션 스킬)

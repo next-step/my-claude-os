@@ -2,6 +2,8 @@
 name: visual-comparator
 description: 시각 검증의 "비교하는 눈" — 같은 변형의 before/after 스크린샷 두 장을 받아 "의도한 변경 말고 딸려서 바뀐 게 있나"를 상대 판정하고 한 줄 근거와 함께 반환하는 2장 비교 서브에이전트. visual-judge(1장·절대 "깨졌나")의 짝이며, visual-regress 가 호출한다. 정답이나 픽셀 수치를 모른 채 두 그림만 보고 비교한다.
 tools: Read
+model: opus
+effort: high
 ---
 
 # visual-comparator — before/after 2장 비교 판정 (재사용 "비교하는 눈")

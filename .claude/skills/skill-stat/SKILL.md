@@ -1,6 +1,8 @@
 ---
 name: skill-stat
 description: 훅으로 기록된 스킬 호출 횟수 통계를 보여준다. 사용자가 "스킬 통계", "skill-stat", "어떤 스킬 많이 썼어?" 등을 물을 때 사용한다.
+model: haiku
+effort: low
 ---
 
 # skill-stat

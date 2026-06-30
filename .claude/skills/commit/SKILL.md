@@ -1,6 +1,8 @@
 ---
 name: commit
 description: 현재 작업 내용을 분석해 Conventional Commits 규칙에 맞는 한글 커밋 메시지를 만들고 커밋한다. 사용자가 "커밋", "commit", "커밋해줘" 등을 요청할 때 사용한다.
+model: sonnet
+effort: low
 ---
 
 # Commit

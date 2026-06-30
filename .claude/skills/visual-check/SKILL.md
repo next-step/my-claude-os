@@ -1,6 +1,8 @@
 ---
 name: visual-check
 description: 공통 컴포넌트의 여러 변형을 한 갤러리로 모아, 코드 사실 측정과 AI 눈의 동적 판정을 나란히 검증한다. "갤러리 만들어줘", "변형들 확인해줘", "카드 안 깨졌는지 봐줘", "시각 검증", "검사해줘" 같은 요청에 사용한다. 각 변형의 단일 판정은 공유 서브에이전트 visual-judge 가 한다. demo-app 에서 동작한다.
+model: sonnet
+effort: medium
 ---
 
 # visual-check — 공통 컴포넌트 변형 갤러리 검증 (오케스트레이션 스킬)
