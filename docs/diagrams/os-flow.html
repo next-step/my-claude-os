@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>OS 개발 흐름 — 상세</title>
+<style>
+  :root{
+    --ink:#1f2937; --muted:#6b7280; --line:#e5e7eb; --bg:#fafafa;
+    --human:#fdf2f8; --human-b:#db2777;
+    --agent:#eff6ff; --agent-b:#2563eb;
+    --custom:#f5f3ff; --custom-b:#7c3aed;
+    --hook:#fffbeb; --hook-b:#d97706;
+    --stage:#f0fdfa; --stage-b:#0d9488;
+    --gate:#fef9c3; --gate-b:#ca8a04;
+  }
+  *{box-sizing:border-box;}
+  body{font-family:-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;color:var(--ink);
+       background:#fff;margin:0;padding:30px 34px;width:1000px;}
+  h1{font-size:21px;margin:0 0 3px;}
+  .sub{color:var(--muted);font-size:12.5px;margin:0 0 18px;}
+  .entry{display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:6px;}
+  .pill{border-radius:999px;padding:8px 14px;font-size:12.5px;font-weight:700;border:1px solid;}
+  .pill.user{background:#fff;border-color:#d1d5db;color:#374151;}
+  .pill.rule{background:var(--hook);border-color:#fde68a;color:var(--hook-b);}
+  .pill.feature{background:var(--stage);border-color:#99f6e4;color:var(--stage-b);}
+  .arrow{font-size:18px;color:#9ca3af;font-weight:700;}
+  .down{display:flex;justify-content:center;align-items:center;gap:8px;color:var(--muted);
+        font-size:12px;font-weight:700;margin:7px 0;}
+  .down .a{font-size:18px;color:#6b7280;}
+  .stage{border:1px solid var(--line);border-left:5px solid var(--stage-b);border-radius:12px;
+         background:var(--bg);padding:13px 16px;}
+  .stage .head{font-weight:800;font-size:14px;color:var(--stage-b);margin-bottom:10px;}
+  .row{display:flex;align-items:center;gap:9px;flex-wrap:wrap;}
+  .chip{border-radius:10px;padding:8px 11px;font-size:12px;border:1px solid;background:#fff;line-height:1.3;}
+  .chip .t{font-weight:700;}
+  .chip .k{font-size:9.5px;color:var(--muted);display:block;margin-top:1px;}
+  .c-human{background:var(--human);border-color:#f9a8d4;} .c-human .t{color:var(--human-b);}
+  .c-agent{background:var(--agent);border-color:#bfdbfe;} .c-agent .t{color:var(--agent-b);}
+  .c-custom{background:var(--custom);border-color:#ddd6fe;} .c-custom .t{color:var(--custom-b);}
+  .c-skill{background:#fff;border-color:#d1d5db;} .c-skill .t{color:#374151;}
+  .c-hook{background:var(--hook);border-color:#fde68a;} .c-hook .t{color:var(--hook-b);}
+  .gate{background:var(--gate);border:1px solid #fde047;border-radius:10px;padding:8px 11px;font-size:12px;font-weight:800;color:var(--gate-b);}
+  .sep{color:#cbd5e1;font-size:14px;}
+  .loop{display:inline-block;background:#fff;border:1px dashed var(--agent-b);color:var(--agent-b);
+        border-radius:8px;padding:3px 9px;font-size:11px;font-weight:700;margin-left:6px;}
+  .loopbox{display:inline-flex;align-items:center;gap:9px;flex-wrap:wrap;
+        border:2px dashed #6366f1;border-radius:12px;padding:13px 12px 10px;position:relative;margin-top:7px;}
+  .loopbox::before{content:attr(data-label);position:absolute;top:-9px;left:12px;
+        background:#fff;padding:0 7px;font-size:10.5px;font-weight:800;color:#6366f1;white-space:nowrap;}
+  .verdict{margin-top:9px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+  .vlabel{font-size:11px;font-weight:800;color:var(--muted);margin-right:2px;}
+  .dchip{border-radius:8px;padding:5px 10px;font-size:11.5px;font-weight:700;border:1px solid;background:#fff;}
+  .dchip .k{font-weight:600;color:var(--muted);}
+  .d-new{border-color:#bfdbfe;color:var(--agent-b);background:var(--agent);}
+  .d-inline{border-color:#d1d5db;color:#374151;}
+  .d-resume{border-color:#fde68a;color:var(--hook-b);background:var(--hook);}
+  .vchip{border-radius:8px;padding:5px 10px;font-size:11.5px;font-weight:700;border:1px solid;}
+  .v-ok{background:#ecfdf5;border-color:#a7f3d0;color:#059669;}
+  .v-loop{background:#eff6ff;border-color:#bfdbfe;color:var(--agent-b);}
+  .v-esc{background:#fff7ed;border-color:#fed7aa;color:#c2410c;}
+  .legend{margin-top:18px;border-top:1px solid var(--line);padding-top:12px;display:flex;gap:16px;flex-wrap:wrap;font-size:11.5px;color:var(--muted);}
+  .legend b{color:var(--ink);}
+  .sw{display:inline-block;width:11px;height:11px;border-radius:3px;border:1px solid;vertical-align:middle;margin-right:4px;}
+  .gate .g3{display:block;font-size:9px;font-weight:700;color:#a16207;margin-top:1px;}
+</style>
+</head>
+<body>
+  <h1>OS 개발 흐름 — 상세</h1>
+  <p class="sub">스킬(절차) · <b style="color:var(--agent-b)">서브에이전트</b> · <b style="color:var(--custom-b)">reviewer(공유)</b> · <b style="color:var(--gate-b)">사람 검토 게이트</b>(①확정·②승인 — 별도 번호 없이 각 단계에 내장, 통과해야 ③ 구현) · <b style="color:var(--hook-b)">훅</b></p>
+
+  <div class="entry">
+    <span class="pill user">사용자: 기능 요청</span>
+    <span class="arrow">+</span>
+    <span class="pill rule">CLAUDE.md 규칙 (상시 강제)</span>
+    <span class="arrow">→</span>
+    <span class="pill feature">/feature 런처 · 상태 스캔·라우팅</span>
+  </div>
+
+  <div class="down"><span class="a">↓</span> PRD 없음</div>
+
+  <div class="stage">
+    <div class="head">① 요구사항 · /prd</div>
+    <div class="row">
+      <div class="chip c-skill"><span class="t">/prd: 요구사항 템플릿</span><span class="k">requirements.md 뼈대 생성</span></div>
+      <span class="sep">→</span>
+      <div class="chip c-human"><span class="t">사람: 요구사항 작성</span><span class="k">requirements.md 채움</span></div>
+      <span class="sep">→</span>
+      <div class="loopbox" data-label="🔁 수정 루프 · 확정까지 반복">
+        <div class="chip c-agent"><span class="t">PRD 작성</span><span class="k">general-purpose</span></div>
+        <span class="sep">→</span>
+        <div class="chip c-custom"><span class="t">reviewer</span><span class="k">요구사항 ↔ PRD</span></div>
+        <span class="sep">→</span>
+        <div class="gate">확정 게이트<span class="g3">사람 검토</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="down"><span class="a">↓</span> 확정</div>
+
+  <div class="stage">
+    <div class="head">② 설계 · /plan</div>
+    <div class="row">
+      <div class="loopbox" data-label="🔁 수정 루프 · 승인까지 반복">
+        <div class="chip c-skill"><span class="t">재활용 1차 스캔</span><span class="k">메인(grep/glob)</span></div>
+        <span class="sep">→</span>
+        <div class="chip c-skill"><span class="t">footprint 스캔 ⭐</span><span class="k">1.5 · 스키마·시드 빈칸</span></div>
+        <span class="sep">→</span>
+        <div class="chip c-agent"><span class="t">Explore ×N (병렬)</span><span class="k">갭(불확실)만 깊게 조사</span></div>
+        <span class="sep">→</span>
+        <div class="chip c-agent"><span class="t">Plan 설계</span><span class="k">Plan 에이전트</span></div>
+        <span class="sep">→</span>
+        <div class="gate">승인 게이트<span class="g3">사람 검토</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="down"><span class="a">↓</span> 승인 · <b style="color:var(--gate-b)">통과 전 구현 금지</b></div>
+
+  <div class="stage">
+    <div class="head">③ 구현 · /impl (디스패처)</div>
+    <svg viewBox="0 0 920 422" width="100%" xmlns="http://www.w3.org/2000/svg" style="display:block;margin-top:2px;"
+         font-family="-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif">
+      <defs>
+        <marker id="ag" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/></marker>
+        <marker id="aok" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#059669"/></marker>
+        <marker id="aesc" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#c2410c"/></marker>
+        <marker id="aloop" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#6366f1"/></marker>
+      </defs>
+      <style>
+        text{fill:#1f2937;}
+        .hd{font-size:12.5px;font-weight:800;fill:#475569;}
+        .t{font-size:12.5px;font-weight:700;}
+        .s{font-size:10px;font-weight:600;fill:#6b7280;}
+        .lab{font-size:11px;font-weight:800;}
+        .e{stroke:#94a3b8;stroke-width:1.6;fill:none;}
+      </style>
+
+      <!-- ① 디스패치 fan-out -->
+      <text class="hd" x="4" y="14">① 디스패치 결정 — “이번 일의 크기”로 매 라운드 고른다</text>
+      <rect x="8" y="40" width="116" height="66" rx="10" fill="#fff" stroke="#94a3b8" stroke-width="1.6"/>
+      <text class="t" x="66" y="70" text-anchor="middle">일의 크기?</text>
+      <text class="s" x="66" y="87" text-anchor="middle">매 라운드</text>
+      <path class="e" d="M124,73 H196"/>
+      <path class="e" d="M196,61 V181"/>
+      <path class="e" d="M196,61 H246" marker-end="url(#ag)"/>
+      <path class="e" d="M196,119 H246" marker-end="url(#ag)"/>
+      <path class="e" d="M196,181 H246" marker-end="url(#ag)"/>
+
+      <rect x="248" y="40" width="544" height="44" rx="10" fill="#eff6ff" stroke="#2563eb" stroke-width="1.4"/>
+      <text class="t" x="264" y="59" fill="#2563eb">큰 신규 — 여러 파일·새 동작</text>
+      <text class="s" x="264" y="75">→ 새 구현 에이전트(Task) · 메인 컨텍스트 보호 · 병렬·격리</text>
+
+      <rect x="248" y="98" width="544" height="44" rx="10" fill="#fff" stroke="#94a3b8" stroke-width="1.4"/>
+      <text class="t" x="264" y="117">작은 보완 — 1~2파일·독립적·맥락 적음</text>
+      <text class="s" x="264" y="133">→ 인라인 또는 좁은 새 에이전트 · resume 안 함(작은 일에 큰 에이전트 안 되살림)</text>
+
+      <rect x="248" y="156" width="544" height="44" rx="10" fill="#fffbeb" stroke="#d97706" stroke-width="1.4"/>
+      <text class="t" x="264" y="175" fill="#b45309">맥락 필요 — 직전 누적 맥락이 꼭 필요</text>
+      <text class="s" x="264" y="191">→ 같은 에이전트 resume · 재로딩 비용 &gt; 변경 크기일 때만</text>
+
+      <text class="s" x="30" y="222">▼ 정해진 방식으로 구현 — 아래 루프로</text>
+
+      <!-- ② 루프 + 판정 -->
+      <text class="hd" x="4" y="236">② 구현 ↔ /verify 루프 — /verify의 판정대로 분기(결정)</text>
+      <rect x="8" y="250" width="566" height="152" rx="12" fill="#fbfaff" stroke="#6366f1" stroke-width="1.5" stroke-dasharray="6 4"/>
+      <rect x="22" y="242" width="214" height="15" fill="#fff"/>
+      <text class="lab" x="26" y="254" fill="#6366f1">🔁 구현↔검증 · 통과까지 반복</text>
+
+      <rect x="30" y="300" width="118" height="52" rx="9" fill="#eff6ff" stroke="#2563eb" stroke-width="1.4"/>
+      <text class="t" x="89" y="322" text-anchor="middle" fill="#2563eb">구현</text>
+      <text class="s" x="89" y="338" text-anchor="middle">코드 + 테스트</text>
+      <path class="e" d="M148,326 H176" marker-end="url(#ag)"/>
+      <rect x="178" y="300" width="186" height="52" rx="9" fill="#fff" stroke="#94a3b8" stroke-width="1.4"/>
+      <text class="t" x="271" y="322" text-anchor="middle">강도 결정 → /verify</text>
+      <text class="s" x="271" y="338" text-anchor="middle">위험도 → light · full (full은 reviewer)</text>
+      <path class="e" d="M364,326 H408" marker-end="url(#ag)"/>
+      <rect x="410" y="296" width="120" height="60" rx="10" fill="#fef9c3" stroke="#ca8a04" stroke-width="1.5"/>
+      <text class="t" x="470" y="320" text-anchor="middle" fill="#a16207">판정</text>
+      <text class="s" x="470" y="337" text-anchor="middle">verdict</text>
+
+      <!-- verdict branches -->
+      <rect x="632" y="276" width="280" height="46" rx="9" fill="#ecfdf5" stroke="#059669" stroke-width="1.4"/>
+      <text class="t" x="648" y="296" fill="#059669">✅ 통과</text>
+      <text class="s" x="648" y="312">→ 루프 종료, ④ 마무리로 진행</text>
+      <path class="e" d="M530,312 H592 V299 H630" stroke="#059669" marker-end="url(#aok)"/>
+
+      <rect x="632" y="338" width="280" height="46" rx="9" fill="#fff7ed" stroke="#c2410c" stroke-width="1.4"/>
+      <text class="t" x="648" y="358" fill="#c2410c">↑ 설계문제</text>
+      <text class="s" x="648" y="374">→ 루프 탈출 · ② /plan 에스컬레이션</text>
+      <path class="e" d="M530,340 H592 V361 H630" stroke="#c2410c" marker-end="url(#aesc)"/>
+
+      <!-- 구현결함 loop-back -->
+      <path d="M470,356 V414 H89 V354" fill="none" stroke="#6366f1" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#aloop)"/>
+      <text class="lab" x="150" y="409" fill="#6366f1">↺ 구현결함 — 미충족 항목만 고쳐 재구현(1로)</text>
+    </svg>
+  </div>
+
+  <div class="down"><span class="a">↓</span> 통과</div>
+
+  <div class="stage">
+    <div class="head">④ 마무리</div>
+    <div class="row">
+      <div class="chip c-skill"><span class="t">/commit</span></div>
+      <span class="sep">→</span>
+      <div class="chip c-skill"><span class="t">/push</span></div>
+      <span class="sep">→</span>
+      <div class="chip c-skill"><span class="t">/pr</span><span class="k">커밋분석 → PR본문(LLM)</span></div>
+      <span class="sep">→</span>
+      <div class="chip c-hook"><span class="t">훅: 템플릿+흐름도 강제</span></div>
+      <span class="sep">→</span>
+      <div class="chip c-human"><span class="t">미리보기 확인</span></div>
+      <span class="sep">→</span>
+      <div class="chip c-skill"><span class="t">GitHub PR</span><span class="k">step → jshans40</span></div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <span><span class="sw" style="background:var(--agent);border-color:#bfdbfe"></span><b>서브에이전트(빌트인)</b> general-purpose·Explore·Plan</span>
+    <span><span class="sw" style="background:var(--custom);border-color:#ddd6fe"></span><b>reviewer</b> 공유 커스텀(/prd·/verify)</span>
+    <span><span class="sw" style="background:var(--human);border-color:#f9a8d4"></span><b>사람</b></span>
+    <span><span class="sw" style="background:var(--hook);border-color:#fde68a"></span><b>훅</b></span>
+  </div>
+</body>
+</html>
