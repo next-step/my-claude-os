@@ -82,9 +82,13 @@
 5. 저장: 관심 공고 북마크 / 리서치 노트 보관
 ```
 
+- **온보딩 조건과 피드 필터의 관계(전제)**: 온보딩 입력은 피드의 **초기 필터 프리셋**이다. 사용자는 **피드에서 조건을 언제든 자유롭게 변경**할 수 있고, preference도 언제든 수정 가능(고정 필터 아님). frontend 화면 설계의 전제.
+
 ---
 
 ## 7. 시스템 구성 (개략)
+
+> 아래는 **개념 수준의 계층 구분**이다. 실제 개발 컴포넌트 경계(프론트↔API↔수집↔DB)와 M1 계약은 **12장 참조**.
 
 ```
 [수집 계층]  채용 소스 크롤링/API  ─┐
@@ -107,6 +111,7 @@
   2. **크롤링** — API로 가져올 수 없는 데이터는 크롤링으로 보완.
   3. **URL 전달(폴백)** — 자동 수집이 불가능하면, 최소한 사용자에게 해당 출처 URL이라도 전달.
 - **법적/정책 유의**: 각 소스의 크롤링 약관·robots·이용약관 확인 필요(소스별 수집 방식 확정 시 점검).
+  - **사람인 공개 API**: 재판매·대가 수취 금지. M1(단일 로컬·비상업 실습)은 무방하나, 향후 공개 서비스화 시 약관 재점검 필요.
 
 ---
 
@@ -128,8 +133,11 @@
 
 - **M1 — MVP: 공고 모아보기**
   - 1~2개 소스에서 공고 수집 → 정규화 → 조건 필터 피드 + 북마크.
+  - **M1의 "모아보기" 체감** = 내 조건 필터·마감임박 정렬로 여러 사이트 순회를 대체하는 것. 실제 **중복 병합 체감은 M3 다중소스부터**(M1은 소스 1개라 중복이 발생하지 않음; 계약의 `sources[]`/`duplicateCount`는 자리만 확보).
+  - **직무 범위: 개발직군 한정**(11장 결정). 온보딩 직무 선택지·사람인 job_cd 매핑을 개발직군으로 좁혀 시작.
 - **M2 — 회사 리서치**
   - 공고에 회사 연결 → 공시 요약 + 인재상 정리(자소서 관점) + 리서치 노트.
+  - 무거운 마일스톤이므로 **필요 시 M2a(회사-공고 연결 + 원문 URL 노출)와 M2b(LLM 요약)로 분할** 가능.
 - **M3 — 다중 소스·중복 제거 고도화**
   - 소스 확장, 중복 병합 품질 개선, 마감임박 알림 등.
 - **M4 — 개인화·확장**
@@ -150,9 +158,118 @@
 ### 결정됨
 - **수집 방식**: API 우선 → 불가 시 크롤링 → 그래도 안 되면 사용자에게 출처 URL 전달(7장 폴백 전략 참고).
 - **대상 시장 범위**: 국내 한정. **국내에 있는 외국계 회사도 대상에 포함**(국내 채용 공고 기준).
+- **개발 실행 구조**: 12장 참조(스택·아키텍처·M1 계약 확정).
+- **M1 인증**: 실제 로그인 없이 **단일 로컬 사용자(고정 userId)** 로 진행. 정식 인증·개인화는 M2~M3에서 도입.
+- **직무 영역 범위**: **M1은 개발직군 한정**으로 좁게 시작, 이후 일반 직군으로 확장(실습 규모·라벨 매핑 최소화·확장 용이).
 
 ### 열린 질문 (구현하면서 결정 — 보류)
-- 직무 영역 범위: 개발 직군 한정 vs 일반 직군 포함.
 - 공시 요약·인재상 정리에 사용할 LLM/요약 파이프라인 구체화.
 - 데이터 신선도: 공고/공시 갱신 주기와 캐싱 전략.
-- 인증·개인화 범위: 로그인 필요 여부와 저장 데이터 범위.
+- 인증·개인화 범위(M2+): M1 이후 로그인 도입 시점과 저장 데이터 범위.
+
+---
+
+## 12. 개발 실행 구조 (확정)
+
+> "무엇을·왜"(1~11장)에 이어 "어떻게 만들 것인가"를 정의한다. backend-developer·frontend-developer는
+> 이 장을 **공통 틀**로 삼는다. 계약(타입·API)이 바뀌면 이 장을 먼저 갱신한 뒤 구현한다.
+
+### 12.1 기술 스택 (승인됨)
+- **언어**: TypeScript (프론트·백·수집 통일). 타입을 그대로 contract로 공유.
+- **프레임워크**: Next.js (App Router). 프론트 페이지 + 백엔드 Route Handlers를 한 앱에서.
+- **DB**: SQLite (M1) + Prisma ORM. M2/M3에서 PostgreSQL로 교체(Prisma가 추상화).
+- **수집**: TS 모듈(`fetch` + 필요 시 `cheerio`). 본격 크롤링용 Playwright는 M3.
+- **배포**: M1은 로컬(`next dev`). 필요 시 Vercel + Neon/Supabase.
+
+선택 기준: ① M1 가장 빨리 검증 ② 취준생 1인 실습 규모 ③ 확장 가능.
+
+### 12.2 아키텍처 (컴포넌트 경계)
+```
+[제공] Next.js 단일 앱
+   웹 프론트엔드(온보딩·피드·상세·저장)  ──HTTP/JSON──  백엔드 API(Route Handlers)
+                                                          │  (타입 contract 공유)
+[저장] Prisma ── SQLite(M1→Postgres) : Job · UserPreference · Bookmark  (Company/Note=M2)
+                                                          │  upsert (정규화·dedup 후)
+[가공] Collector 모듈 : Normalizer(RawJob→Job, 코드→라벨 매핑) + dedupKey 계산(병합은 M3)
+                                                          │  fetchRaw(): RawJob[]
+[수집] Source Adapter (공통 인터페이스) : ① SaraminAdapter(공개 API, M1) → ②크롤링(M3) → ③DART(M2)
+                                          폴백: 수집 실패 시 url 만 채워 전달
+   실행: M1 = 수동 `npm run collect` (배치/스케줄러는 M3)
+```
+- 수집은 API 서버와 **분리**된 모듈. 사용자 요청은 항상 DB만 읽음(빠르고 안정적).
+- 새 소스 추가 = 어댑터 1개 추가. 폴백 전략(API→크롤링→URL)을 어댑터 내부에서 흡수.
+
+### 12.3 데이터 스키마 (저장 — Prisma 개념)
+
+**Job** (정규화 공통 스키마)
+| 필드 | 타입 | 비고 |
+|---|---|---|
+| id | string | 내부 안정 ID |
+| source | string | 수집 소스("saramin" 등) |
+| sourceJobId | string | 소스 원본 ID |
+| url | string | 원문 출처 URL(폴백 시에도 항상 채움) |
+| title | string | 공고/직무명 |
+| companyName | string | 회사명 |
+| companyId | string \| null | M2 회사 리서치 연결용(M1은 null) |
+| jobRole | string \| null | 직무 분류(코드→라벨 매핑됨) |
+| location | string \| null | 지역(코드→라벨 매핑됨) |
+| experienceLevel | "NEW"\|"EXPERIENCED"\|"ANY" | 신입/경력/무관 |
+| employmentType | string \| null | 정규직 등 |
+| deadline | string \| null | ISO date. null=상시채용/미정 |
+| postedAt | string \| null | ISO date |
+| description | string \| null | 직무 요건. **사람인 API는 본문 미제공 → 보통 null**(본문 수집은 M2/M3) |
+| dataQuality | "FULL"\|"PARTIAL" | 자동수집 완성도. PARTIAL=핵심 필드 누락 |
+| dedupKey | string | `회사+직무+지역`(마감일 null은 키에서 제외). **unique 아님**, 계산·저장만 |
+| collectedAt | string | 수집 시각 ISO |
+
+- **UNIQUE 제약은 `(source, sourceJobId)` 단 하나** (재수집 idempotent upsert 키 겸용).
+  dedupKey에 unique를 걸지 않는다(상시채용·다지역 동일직무를 한 건으로 뭉개 정상 공고가 사라지는 것 방지). 실제 중복 병합은 M3.
+- `isBookmarked`는 Job 테이블 컬럼이 **아님** → API 응답 DTO에서 Bookmark join으로 계산.
+
+**Bookmark**
+| 필드 | 타입 | 비고 |
+|---|---|---|
+| id | string | bookmarkId |
+| jobId | string | FK → Job |
+| status | "PLANNED"\|"APPLIED"\|"CLOSED" | 지원예정/지원함/마감 |
+| memo | string \| null | 가벼운 메모(정식 리서치 노트는 M2) |
+| createdAt | string | ISO |
+
+**UserPreference** (M1은 단일 로컬 사용자 1행)
+`{ roles: string[]; locations: string[]; experience: "NEW"|"EXPERIENCED"|"ANY"; keywords: string[] }`
+
+### 12.4 응답 DTO (프론트가 받는 형태)
+```ts
+type JobDTO = Job & {
+  sources: string[];        // M1은 [source] 1개. M3 중복 병합 시 복수(계약 변경 불필요)
+  duplicateCount: number;   // 묶인 중복 수(M1=1). "여러 사이트를 한 곳에서" 체감용
+  bookmark: { bookmarkId: string; status: BookmarkStatus } | null; // null=미저장
+};
+```
+
+### 12.5 API 엔드포인트 (M1)
+| 메서드·경로 | 요청 | 응답 |
+|---|---|---|
+| GET /api/jobs | query: `role, location(다중 가능, 콤마), experience(다중 가능), keyword, sort(deadline\|recent), deadlineWithin(days), includeExpired(기본 false), cursor` | `{ items: JobDTO[], nextCursor: string\|null, totalCount: number, partialHiddenCount: number }` |
+| GET /api/jobs/:id | — | `JobDTO` (description null이면 프론트는 원문 URL 폴백을 1급 요소로) |
+| GET /api/me/preferences | — | `UserPreference` |
+| PUT /api/me/preferences | `{ roles, locations, experience, keywords }` | `UserPreference` |
+| GET /api/bookmarks | query: `status?` (includeExpired 무시, 마감도 표시) | `{ items: JobDTO[] }` |
+| POST /api/bookmarks | `{ jobId }` | `{ bookmarkId, status:"PLANNED" }` |
+| PATCH /api/bookmarks/:id | `{ status }` | `{ bookmarkId, status }` |
+| DELETE /api/bookmarks/:id | — | 204 |
+
+규약: 날짜=ISO 8601 문자열, 페이지네이션=커서 방식, 에러=`{ error: { code, message } }`+HTTP status, 빈 결과는 에러 아님(`items: []`).
+
+### 12.6 정렬·필터 규약 (양쪽 합의)
+- **마감 지난 공고는 기본 제외**(`includeExpired=false`). 단 GET /api/bookmarks는 includeExpired 무시(마감도 표시).
+- **마감임박순(sort=deadline)**: 커서는 `(deadline, id)` 복합. `deadline=null`(상시채용)은 **항상 맨 뒤**, 프론트는 "상시" 뱃지.
+- **PARTIAL 공고**: 조건 필터 시 null 필드 때문에 전부 사라지지 않도록, 필터로 가려지는 PARTIAL 공고 수를 `partialHiddenCount`로 반환 → 프론트는 "조건 확인 어려운 공고 N건"을 접이식으로 노출(모아보기 가치 보호). PARTIAL은 전용 카드(원문 직접 확인 CTA).
+- 필터 다중값 허용: `location=서울,경기`, `experience` 복수.
+
+### 12.7 M1 작업 분배·순서
+- **backend**: 스캐폴딩 → Prisma 스키마 → **타입 export + Mock seed 공개(프론트 unblock)** → SaraminAdapter(API 우선, 약관/robots 점검) → Normalizer(코드→라벨, **개발직군 job_cd 한정**)+dedupKey → API. 사람인 API는 이용신청→승인 + 하루 500콜·요청당 count≈110 상한 → day-1은 mock, 승인 후 실수집 교체.
+  - **B-1 어댑터 소스 비종속**: SaraminAdapter를 특별 취급하지 말고 공통 `SourceAdapter` 인터페이스만 준수한다. 사람인 API 승인 지연/실패 시 다른 소스 어댑터로 즉시 교체 가능하게(구조적 보험).
+  - **A-3 회사 식별 힌트 보존**: M1 수집 시 회사 식별 가능한 원본 필드(사업자번호·법인명 원문 등이 사람인 응답에 있으면)를 버리지 말고 raw로라도 보존한다(M2 DART 공시 연결 대비).
+- **frontend**: 온보딩 → 피드(카드·필터·마감임박순·북마크 토글·상태 뱃지) → 상세(요건+리서치 진입점 placeholder+원문 폴백) → 저장(상태 관리) → 빈/로딩/에러+폴백 UX.
+- **순서**: ①기획 계약 확정(본 장) → ②backend 타입+Mock 공개 → ③frontend·backend 병렬 → ④Mock→실 API 교체로 통합. **M1 완료 기준 = "온보딩→피드→북마크"가 끝까지 도는 것.**
