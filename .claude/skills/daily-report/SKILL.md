@@ -45,4 +45,5 @@ analyst의 3줄 요약을 사용자에게 전달. 리포트 파일을 present.
 - 각 subagent 정의: `agents/market-scanner.md`, `agents/portfolio-analyst.md`.
 
 ## 자동화
-사용자가 원하면 매일 아침(한국 장전 ~07:40, 미국 마감 직후) 자동 실행 스케줄을 제안한다.
+매일 아침 07:40 KST(평일) `launchd`로 이 스킬이 헤드리스 자동 실행된다.
+구현·설치는 `automation/`(러너 + plist), 안내는 `automation/README.md`.
