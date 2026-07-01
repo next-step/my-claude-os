@@ -30,15 +30,20 @@ Claude Code에서 논문 링크를 주면 됩니다:
 /feedback <단계>    # 임의 단계 검증
 ```
 
-## 예시 산출물 (`output/`)
+## 예시 산출물 (`output/<slug>/`)
 
-LiveEdit(*Towards Real-Time Diffusion-Based Streaming Video Editing*) 논문을 분석한 결과:
+산출물은 **논문별 폴더**로 정리됩니다. 예: `output/liveedit_2606.26740/`
+(LiveEdit — *Towards Real-Time Diffusion-Based Streaming Video Editing*)
 
 - `01_analysis.md` — 논문 분석
 - `03_detail.md` — 상세 해설
 - `04_code.md` — 구현 코드 분석 (논문↔코드 매핑)
 - `05_run.md` + `run/` — **실제 실행 리포트 + 재현 코드** (4개 핵심 메커니즘 CPU 검증, ALL PASS)
+- `design.css` — 디자인 시스템
+- `feedback_summary.md` — 단계별 게이트 종합
 - `report.html` — 최종 HTML 리포트 (자급식, 순백 디자인)
+
+폴더 규칙과 논문 목록은 [`output/README.md`](output/README.md) 참고.
 
 ## 다른 PC에서 이어서 작업하기
 

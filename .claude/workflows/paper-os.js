@@ -1,32 +1,35 @@
 export const meta = {
   name: 'paper-os',
-  description: 'Paper-analysis OS: given a paper link, gauge complexity, decide optimal agent count per stage, run analyzer→detail→code→run→design→html with feedback gates.',
+  description: 'Paper-analysis OS: given a paper link, gauge complexity, decide optimal agent count per stage, run analyzer→detail→code→run→design→html with feedback gates. Outputs are organized per paper under output/<slug>/.',
   whenToUse: 'User provides a paper link and wants the full end-to-end paper-analysis pipeline run automatically.',
   phases: [
-    { title: 'Triage', detail: 'Fetch the link, measure complexity, decide agent counts' },
-    { title: 'Analyze', detail: 'analyzer skill → 01_analysis.md (gated)' },
-    { title: 'Detail', detail: 'detail skill → 03_detail.md (parallel by concept on complex papers)' },
-    { title: 'Code', detail: 'code skill → 04_code.md (parallel by module on large repos)' },
-    { title: 'Run', detail: 'code-run skill → 05_run.md' },
-    { title: 'Design', detail: 'mydesign skill → design.css' },
-    { title: 'Render', detail: 'html skill → report.html' },
+    { title: 'Triage', detail: 'Fetch the link, measure complexity, decide agent counts + paper slug' },
+    { title: 'Analyze', detail: 'analyzer skill → <slug>/01_analysis.md (gated)' },
+    { title: 'Detail', detail: 'detail skill → <slug>/03_detail.md (parallel by concept on complex papers)' },
+    { title: 'Code', detail: 'code skill → <slug>/04_code.md (parallel by module on large repos)' },
+    { title: 'Run', detail: 'code-run skill → <slug>/05_run.md' },
+    { title: 'Design', detail: 'mydesign skill → <slug>/design.css' },
+    { title: 'Render', detail: 'html skill → <slug>/report.html' },
   ],
 }
 
 // ── config ──────────────────────────────────────────────────────────────────
 // PORTABLE: ROOT defaults to '.' (the session working directory) so the OS runs
-// on any PC / any clone path. Override only if you must: pass args as an object
-// { link, root, maxParallel } and set root to an absolute path.
+// on any PC / any clone path. Override via args object { link, root, maxParallel }.
 const isObj = typeof args === 'object' && args !== null
 const ROOT = (isObj && args.root) || '.'
 const SK = (n) => `${ROOT}/.claude/skills/${n}/SKILL.md`
 // Custom .claude/agents/* are NOT resolvable inside the workflow runtime, so each
-// stage runs on the default workflow agent and is told to READ its SKILL.md and
-// follow it. Output files go under ROOT/output/.
+// stage runs on the default workflow agent and is told to READ its SKILL.md.
 
 const LINK = typeof args === 'string' ? args : (isObj && args.link)
 const MAX_PARALLEL = (isObj && args.maxParallel) || 5
 if (!LINK) throw new Error('paper-os: no paper link provided in args (pass a URL string, or { link, root?, maxParallel? })')
+
+// Per-paper output dir. Assigned after Triage produces a filesystem-safe slug.
+// Every stage writes under OUTDIR so each paper gets its own self-contained folder.
+let OUTDIR = `${ROOT}/output/_pending`
+const P = (f) => `${OUTDIR}/${f}`
 
 const GATE_SCHEMA = {
   type: 'object',
@@ -41,13 +44,14 @@ const GATE_SCHEMA = {
 
 const PLAN_SCHEMA = {
   type: 'object',
-  required: ['complexity', 'detail_agents', 'code_agents', 'rationale', 'concepts', 'modules'],
+  required: ['complexity', 'detail_agents', 'code_agents', 'rationale', 'concepts', 'modules', 'slug'],
   properties: {
     complexity: { type: 'string', enum: ['low', 'medium', 'high'] },
     detail_agents: { type: 'number' },
     code_agents: { type: 'number' },
     concepts: { type: 'array', items: { type: 'string' } },
     modules: { type: 'array', items: { type: 'string' } },
+    slug: { type: 'string' }, // filesystem-safe paper folder name, e.g. liveedit_2606.26740
     rationale: { type: 'string' },
   },
 }
@@ -56,21 +60,21 @@ const PLAN_SCHEMA = {
 async function gated(stageName, file, runStage) {
   let out = await runStage()
   let gate = await agent(
-    `${ROOT} 작업 디렉토리에서, ${SK('feedback')} 파일을 Read로 읽고 그 체크리스트에 따라 '${stageName}' 단계 산출물 ${ROOT}/${file} 을 검증하라. ${ROOT}/output/feedback_${stageName}.md 로 저장하고 구조화 결과(verdict/score/must_fix/path)를 반환.`,
+    `${ROOT} 작업 디렉토리에서, ${SK('feedback')} 파일을 Read로 읽고 그 체크리스트에 따라 '${stageName}' 단계 산출물 ${file} 을 검증하라. ${OUTDIR}/feedback_${stageName}.md 로 저장하고 구조화 결과(verdict/score/must_fix/path)를 반환.`,
     { phase: 'Gate:' + stageName, schema: GATE_SCHEMA, label: `gate:${stageName}` }
   )
   if (gate && gate.verdict === 'FAIL') {
     log(`[${stageName}] FAIL (${gate.score}/10) → 재시도: ${gate.must_fix.join('; ')}`)
     out = await runStage(gate.must_fix)
     gate = await agent(
-      `${ROOT} 에서 ${SK('feedback')} 를 읽고 '${stageName}' 재검증: ${ROOT}/${file}. 직전 지적사항: ${gate.must_fix.join('; ')}. 구조화 결과 반환.`,
+      `${ROOT} 에서 ${SK('feedback')} 를 읽고 '${stageName}' 재검증: ${file}. 직전 지적사항: ${gate.must_fix.join('; ')}. 구조화 결과 반환.`,
       { phase: 'Gate:' + stageName, schema: GATE_SCHEMA, label: `gate:${stageName}:retry` }
     )
   }
   return { out, gate }
 }
 
-// ── Phase 1: Triage ─────────────────────────────────────────────────────────
+// ── Phase 1: Triage — complexity + agent counts + paper slug ────────────────
 phase('Triage')
 const plan = await agent(
   `다음 논문 링크를 WebFetch로 가볍게 훑어 복잡도를 산정하라: ${LINK}
@@ -80,18 +84,21 @@ const plan = await agent(
 - medium → detail_agents=2~3, code_agents=1
 - high → detail_agents=3~5, code_agents=2~4
 detail은 'concepts'(개념 그룹 라벨 배열)로, code는 'modules'(모듈 라벨 배열)로 분할 단위를 제시.
+'slug'은 이 논문의 폴더명으로 쓸 파일시스템 안전 문자열(영문소문자/숫자/._-만, 예: liveedit_2606.26740)로 지어라.
 동시성 상한 ${MAX_PARALLEL}을 넘기지 말 것. 근거를 rationale에 적어라.`,
   { phase: 'Triage', schema: PLAN_SCHEMA, label: 'triage' }
 )
 const nDetail = Math.max(1, Math.min(plan.detail_agents || 1, MAX_PARALLEL))
 const nCode = Math.max(1, Math.min(plan.code_agents || 1, MAX_PARALLEL))
-log(`복잡도=${plan.complexity} · detail×${nDetail} · code×${nCode} — ${plan.rationale}`)
+const SLUG = String(plan.slug || 'paper').replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 60) || 'paper'
+OUTDIR = `${ROOT}/output/${SLUG}`
+log(`복잡도=${plan.complexity} · detail×${nDetail} · code×${nCode} · 폴더=output/${SLUG} — ${plan.rationale}`)
 
 // ── Phase 2: Analyze (single, gated) ────────────────────────────────────────
 phase('Analyze')
-const analysis = await gated('analysis', 'output/01_analysis.md', (fixes) =>
+const analysis = await gated('analysis', P('01_analysis.md'), (fixes) =>
   agent(
-    `작업 디렉토리 ${ROOT}. ${SK('analyzer')} 를 Read로 읽고 그 절차를 정확히 따라, 이 논문을 분석해 ${ROOT}/output/01_analysis.md 를 Write로 생성하라: ${LINK}` +
+    `작업 디렉토리 ${ROOT}. ${SK('analyzer')} 를 Read로 읽고 그 절차를 정확히 따라, 이 논문을 분석해 ${P('01_analysis.md')} 를 Write로 생성하라(상위 폴더 없으면 생성): ${LINK}` +
       (fixes ? `\n이전 피드백 반영: ${fixes.join('; ')}` : '') +
       `\n끝나면 파일 경로 + 제목 + 한 줄 요약 + 공식 코드 저장소 링크(있으면)를 반환.`,
     { phase: 'Analyze', label: 'analyzer' }
@@ -104,19 +111,19 @@ const conceptLabels = (plan.concepts && plan.concepts.length ? plan.concepts : [
 let detailRun
 if (conceptLabels.length <= 1) {
   detailRun = (fixes) => agent(
-    `${ROOT} 에서 ${SK('detail')} 를 읽고 그 절차대로 ${ROOT}/output/01_analysis.md 를 풀어 ${ROOT}/output/03_detail.md 를 생성하라.` +
+    `${ROOT} 에서 ${SK('detail')} 를 읽고 그 절차대로 ${P('01_analysis.md')} 를 풀어 ${P('03_detail.md')} 를 생성하라.` +
       (fixes ? `\n이전 피드백: ${fixes.join('; ')}` : ''),
     { phase: 'Detail', label: 'detail' })
 } else {
   detailRun = async () => {
     await parallel(conceptLabels.map((c, i) => () =>
-      agent(`${ROOT} 에서 ${SK('detail')} 의 방식대로 '${c}' 개념만 상세 해설하여 ${ROOT}/output/03_detail_part${i}.md 로 저장.`,
+      agent(`${ROOT} 에서 ${SK('detail')} 의 방식대로 '${c}' 개념만 상세 해설하여 ${P(`03_detail_part${i}.md`)} 로 저장.`,
         { phase: 'Detail', label: `detail:${c}` })))
-    return agent(`${ROOT}/output/03_detail_part*.md 들을 Read로 모두 읽어 하나로 병합·정리해 ${ROOT}/output/03_detail.md 생성(중복 제거, 목차 추가).`,
+    return agent(`${OUTDIR}/03_detail_part*.md 들을 Read로 모두 읽어 하나로 병합·정리해 ${P('03_detail.md')} 생성(중복 제거, 목차 추가). 병합 후 03_detail_part*.md 중간 파일은 삭제하라.`,
       { phase: 'Detail', label: 'detail:merge' })
   }
 }
-const detail = await gated('detail', 'output/03_detail.md', detailRun)
+const detail = await gated('detail', P('03_detail.md'), detailRun)
 
 // ── Phase 4: Code (split by module on large repos, then merge) ───────────────
 phase('Code')
@@ -124,43 +131,46 @@ const moduleLabels = (plan.modules && plan.modules.length ? plan.modules : ['전
 let codeRun
 if (moduleLabels.length <= 1) {
   codeRun = (fixes) => agent(
-    `${ROOT} 에서 ${SK('code')} 를 읽고 그 절차대로 구현 저장소를 찾아 분석하고 ${ROOT}/output/04_code.md 를 생성하라. 논문 분석은 ${ROOT}/output/01_analysis.md 참고.` +
+    `${ROOT} 에서 ${SK('code')} 를 읽고 그 절차대로 구현 저장소를 찾아 분석하고 ${P('04_code.md')} 를 생성하라. 논문 분석은 ${P('01_analysis.md')} 참고.` +
       (fixes ? `\n이전 피드백: ${fixes.join('; ')}` : ''),
     { phase: 'Code', label: 'code' })
 } else {
   codeRun = async () => {
     await parallel(moduleLabels.map((m, i) => () =>
-      agent(`${ROOT} 에서 ${SK('code')} 방식대로 구현 저장소에서 '${m}' 모듈/하위시스템만 분석하여 ${ROOT}/output/04_code_part${i}.md 저장. 단서는 ${ROOT}/output/01_analysis.md.`,
+      agent(`${ROOT} 에서 ${SK('code')} 방식대로 구현 저장소에서 '${m}' 모듈/하위시스템만 분석하여 ${P(`04_code_part${i}.md`)} 저장. 단서는 ${P('01_analysis.md')}.`,
         { phase: 'Code', label: `code:${m}` })))
-    return agent(`${ROOT}/output/04_code_part*.md 들을 Read로 읽어 병합해 ${ROOT}/output/04_code.md 생성(논문↔코드 매핑 표 통합).`,
+    return agent(`${OUTDIR}/04_code_part*.md 들을 Read로 읽어 병합해 ${P('04_code.md')} 생성(논문↔코드 매핑 표 통합). 병합 후 04_code_part*.md 중간 파일은 삭제하라.`,
       { phase: 'Code', label: 'code:merge' })
   }
 }
-const code = await gated('code', 'output/04_code.md', codeRun)
+const code = await gated('code', P('04_code.md'), codeRun)
 
 // ── Phase 5: Run ────────────────────────────────────────────────────────────
 phase('Run')
-const run = await gated('run', 'output/05_run.md', (fixes) =>
-  agent(`${ROOT} 에서 ${SK('code-run')} 를 읽고 그 절차대로 ${ROOT}/output/04_code.md 기반 최소 재현 데모를 ${ROOT}/output/run/ 에 만들고 실제 실행하여 ${ROOT}/output/05_run.md 생성. 토이 입력으로 동작만 증명(대규모 학습 금지). 못 돌리면 사유와 필요조건을 솔직히 기록.` +
+const run = await gated('run', P('05_run.md'), (fixes) =>
+  agent(`${ROOT} 에서 ${SK('code-run')} 를 읽고 그 절차대로 ${P('04_code.md')} 기반 최소 재현 데모를 ${OUTDIR}/run/ 에 만들고 실제 실행하여 ${P('05_run.md')} 생성. 토이 입력으로 동작만 증명(대규모 학습 금지). 못 돌리면 사유와 필요조건을 솔직히 기록.` +
     (fixes ? `\n이전 피드백: ${fixes.join('; ')}` : ''),
     { phase: 'Run', label: 'code-run' }))
 
 // ── Phase 6: Design ─────────────────────────────────────────────────────────
 phase('Design')
 const design = await agent(
-  `${ROOT} 에서 ${SK('mydesign')} 를 읽고 그 절차대로 ${ROOT}/output/design.css 를 생성(순백·고대비·720px 규약).`,
+  `${ROOT} 에서 ${SK('mydesign')} 를 읽고 그 절차대로 ${P('design.css')} 를 생성(순백·고대비·720px 규약).`,
   { phase: 'Design', label: 'mydesign' })
 
 // ── Phase 7: Render ─────────────────────────────────────────────────────────
 phase('Render')
-const html = await gated('html', 'output/report.html', (fixes) =>
-  agent(`${ROOT} 에서 ${SK('html')} 를 읽고 그 절차대로 ${ROOT}/output/01_analysis.md, 03_detail.md, 04_code.md 와 design.css 를 합쳐 자급식(인라인 CSS) ${ROOT}/output/report.html 생성.` +
+const html = await gated('html', P('report.html'), (fixes) =>
+  agent(`${ROOT} 에서 ${SK('html')} 를 읽고 그 절차대로 ${P('01_analysis.md')}, ${P('03_detail.md')}, ${P('04_code.md')} 와 ${P('design.css')} 를 합쳐 자급식(인라인 CSS) ${P('report.html')} 생성.` +
     (fixes ? `\n이전 피드백: ${fixes.join('; ')}` : ''),
     { phase: 'Render', label: 'html' }))
 
 // ── Summary ─────────────────────────────────────────────────────────────────
+const rel = (f) => `output/${SLUG}/${f}`
 return {
   link: LINK,
+  slug: SLUG,
+  folder: `output/${SLUG}/`,
   plan: { complexity: plan.complexity, detail_agents: nDetail, code_agents: nCode, rationale: plan.rationale },
   gates: {
     analysis: analysis.gate && analysis.gate.verdict,
@@ -170,8 +180,8 @@ return {
     html: html.gate && html.gate.verdict,
   },
   outputs: [
-    'output/01_analysis.md', 'output/03_detail.md', 'output/04_code.md',
-    'output/05_run.md', 'output/design.css', 'output/report.html',
+    rel('01_analysis.md'), rel('03_detail.md'), rel('04_code.md'),
+    rel('05_run.md'), rel('design.css'), rel('report.html'), rel('run/'),
   ],
-  final: 'output/report.html',
+  final: rel('report.html'),
 }
