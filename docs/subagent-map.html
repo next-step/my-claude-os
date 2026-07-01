@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>스킬 ↔ 서브에이전트 지도</title>
+<style>
+  :root{
+    --ink:#1f2937; --muted:#6b7280; --line:#e5e7eb;
+    --skill:#0d9488; --builtin-b:#2563eb; --builtin-bg:#eff6ff; --builtin-bd:#bfdbfe;
+    --custom-b:#7c3aed; --custom-bg:#f5f3ff; --custom-bd:#ddd6fe;
+  }
+  *{box-sizing:border-box;}
+  body{font-family:-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;color:var(--ink);
+       background:#fff;margin:0;padding:32px;max-width:1000px;}
+  h1{font-size:20px;margin:0 0 4px;}
+  .sub{color:var(--muted);font-size:13px;margin:0 0 18px;}
+  .row{display:grid;grid-template-columns:150px 1fr;gap:0;border:1px solid var(--line);border-bottom:none;}
+  .row:first-of-type{border-radius:10px 10px 0 0;}
+  .row:last-of-type{border-bottom:1px solid var(--line);border-radius:0 0 10px 10px;}
+  .skill{padding:14px;border-right:1px solid var(--line);background:#f0fdfa;display:flex;flex-direction:column;justify-content:center;gap:2px;}
+  .skill .nm{font-weight:800;color:var(--skill);font-size:14px;}
+  .skill .rl{font-size:11px;color:var(--muted);}
+  .agents{padding:12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
+  .chip{border-radius:9px;padding:7px 11px;font-size:12px;line-height:1.35;border:1px solid;}
+  .chip .nm{font-weight:700;}
+  .chip .why{font-size:10.5px;color:var(--muted);}
+  .builtin{background:var(--builtin-bg);border-color:var(--builtin-bd);}
+  .builtin .nm{color:var(--builtin-b);}
+  .custom{background:var(--custom-bg);border-color:var(--custom-bd);}
+  .custom .nm{color:var(--custom-b);}
+  .custom .tag{font-size:9px;font-weight:800;color:#fff;background:var(--custom-b);border-radius:5px;padding:1px 5px;margin-left:5px;vertical-align:middle;}
+  .none{color:var(--muted);font-size:12px;font-style:italic;}
+  .callout{margin-top:18px;border:1.5px solid var(--custom-bd);background:var(--custom-bg);border-radius:10px;padding:14px 16px;font-size:13px;}
+  .callout b{color:var(--custom-b);}
+  .callout .line2{margin-top:6px;color:var(--muted);font-size:12px;}
+  .legend{margin-top:14px;display:flex;gap:18px;flex-wrap:wrap;font-size:12px;color:var(--muted);}
+  .legend .k{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:middle;margin-right:5px;border:1px solid;}
+  .reasons{margin-top:10px;font-size:12px;color:var(--muted);}
+  .reasons b{color:var(--ink);}
+  .foot{margin-top:16px;color:#9ca3af;font-size:11px;letter-spacing:2px;}
+</style>
+</head>
+<body>
+  <h1>스킬 ↔ 서브에이전트 지도</h1>
+  <p class="sub">어느 스킬이 어떤 서브에이전트를 — 왜 — 띄우는가. <b style="color:var(--custom-b)">보라색</b> = 내가 만든 커스텀(공유), 파란색 = 플랫폼 빌트인.</p>
+
+  <div>
+    <div class="row">
+      <div class="skill"><span class="nm">/feature</span><span class="rl">런처</span></div>
+      <div class="agents"><span class="none">서브에이전트 안 띄움 — 다른 스킬을 <b>Skill</b> 도구로 호출만</span></div>
+    </div>
+
+    <div class="row">
+      <div class="skill"><span class="nm">/prd</span><span class="rl">① 요구사항·PRD</span></div>
+      <div class="agents">
+        <div class="chip builtin"><span class="nm">general-purpose</span> <span>· PRD 작성</span><div class="why">이유: 컨텍스트 격리</div></div>
+        <div class="chip custom"><span class="nm">reviewer</span><span class="tag">공유</span> <span>· PRD 검토</span><div class="why">이유: 독립(셀프채점 방지)</div></div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="skill"><span class="nm">/plan</span><span class="rl">② 설계</span></div>
+      <div class="agents">
+        <div class="chip builtin"><span class="nm">Explore</span> <span>· 재활용 조사(병렬 N개)</span><div class="why">이유: 격리 + 병렬</div></div>
+        <div class="chip builtin"><span class="nm">Plan</span> <span>· 설계</span><div class="why">이유: 격리 + 전문화</div></div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="skill"><span class="nm">/impl</span><span class="rl">③ 구현(디스패처)</span></div>
+      <div class="agents">
+        <div class="chip builtin"><span class="nm">general-purpose</span> <span>· 구현(코드+테스트)</span><div class="why">이유: 격리(파일 많이 씀)</div></div>
+        <span class="none">+ /verify 는 <b>Skill</b> 호출(서브에이전트 아님)</span>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="skill"><span class="nm">/verify</span><span class="rl">검증 일꾼</span></div>
+      <div class="agents">
+        <div class="chip custom"><span class="nm">reviewer</span><span class="tag">공유</span> <span>· (full) 기준↔코드 검증</span><div class="why">이유: 독립(적대적 판정)</div></div>
+        <span class="none">light 모드는 테스트만(Bash) — 서브에이전트 없음</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout">
+    🔗 <b>공유 서브에이전트 = reviewer</b> — <b>/prd</b>(요구사항↔PRD)와 <b>/verify</b>(기준↔코드)가 <b>같은 reviewer</b>를 호출한다.
+    행동(적대적 검토)은 <code>.claude/agents/reviewer.md</code> 한 곳에, 재료(기준·대상)만 각 스킬이 넘김.
+    <div class="line2">※ general-purpose 도 /prd·/impl 둘이 쓰지만, 이건 "범용 빌트인"이라 의미 있는 공유 역할은 reviewer 쪽.</div>
+  </div>
+
+  <div class="legend">
+    <span><span class="k" style="background:var(--builtin-bg);border-color:var(--builtin-bd)"></span>빌트인 (general-purpose · Explore · Plan)</span>
+    <span><span class="k" style="background:var(--custom-bg);border-color:var(--custom-bd)"></span>커스텀·공유 (reviewer)</span>
+  </div>
+  <div class="reasons">
+    <b>위임 이유 4가지</b> — ① 컨텍스트 격리(결론만 받기) · ② 독립(셀프채점 방지) · ③ 병렬 · ④ 전문화·시야 제한.
+    <b>없으면 인라인으로</b>(위임도 토큰 비용이니까).
+  </div>
+
+  <div class="foot">MY CLAUDE CODE OS · 스킬 ↔ 서브에이전트</div>
+</body>
+</html>
