@@ -14,15 +14,19 @@ export const meta = {
 }
 
 // ── config ──────────────────────────────────────────────────────────────────
-const ROOT = 'C:/Users/wagra/claude/code'
+// PORTABLE: ROOT defaults to '.' (the session working directory) so the OS runs
+// on any PC / any clone path. Override only if you must: pass args as an object
+// { link, root, maxParallel } and set root to an absolute path.
+const isObj = typeof args === 'object' && args !== null
+const ROOT = (isObj && args.root) || '.'
 const SK = (n) => `${ROOT}/.claude/skills/${n}/SKILL.md`
 // Custom .claude/agents/* are NOT resolvable inside the workflow runtime, so each
 // stage runs on the default workflow agent and is told to READ its SKILL.md and
 // follow it. Output files go under ROOT/output/.
 
-const LINK = typeof args === 'string' ? args : (args && args.link)
-const MAX_PARALLEL = (args && args.maxParallel) || 5
-if (!LINK) throw new Error('paper-os: no paper link provided in args')
+const LINK = typeof args === 'string' ? args : (isObj && args.link)
+const MAX_PARALLEL = (isObj && args.maxParallel) || 5
+if (!LINK) throw new Error('paper-os: no paper link provided in args (pass a URL string, or { link, root?, maxParallel? })')
 
 const GATE_SCHEMA = {
   type: 'object',
