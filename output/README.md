@@ -22,5 +22,6 @@ output/<slug>/
 | slug | 논문 | 최종 리포트 |
 |---|---|---|
 | `liveedit_2606.26740` | LiveEdit — Towards Real-Time Diffusion-Based Streaming Video Editing | [report.html](liveedit_2606.26740/report.html) |
+| `joyaivl_2606.14777` | JoyAI-VL-Interaction — Real-Time Vision-Language Interaction Intelligence | [report.html](joyaivl_2606.14777/report.html) |
 
 > 새 논문을 분석하면 이 표에 한 줄씩 추가하세요.

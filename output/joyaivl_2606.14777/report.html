@@ -1,0 +1,749 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>JoyAI-VL-Interaction: Real-Time Vision-Language Interaction Intelligence — 분석 리포트</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" crossorigin="anonymous">
+<style>
+:root{
+  --bg:#FFFFFF; --surface:#F7F8FA; --border:#E5E7EB;
+  --text:#1A1A1A; --muted:#5B6470; --accent:#2563EB; --accent-soft:#EFF4FF;
+  --radius:14px; --maxw:720px;
+  --font: -apple-system,"Segoe UI",Roboto,"Noto Sans KR",sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font);
+  font-size:17px;line-height:1.75;-webkit-font-smoothing:antialiased}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:56px 24px 96px}
+h1{font-size:2rem;line-height:1.25;margin:0 0 .3em;letter-spacing:-.02em}
+h2{font-size:1.4rem;margin:2.2em 0 .6em;padding-bottom:.3em;border-bottom:2px solid var(--accent-soft)}
+h3{font-size:1.1rem;margin:1.6em 0 .4em;color:var(--accent)}
+h4{font-size:1rem;margin:1.3em 0 .3em;color:var(--text)}
+p,li{color:var(--text)}
+.muted{color:var(--muted)}
+.card{background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);padding:20px 24px;margin:18px 0}
+.badge{display:inline-block;background:var(--accent-soft);color:var(--accent);
+  font-size:.8rem;font-weight:600;padding:3px 10px;border-radius:999px;margin:2px}
+code,pre{font-family:"SF Mono",Consolas,monospace;font-size:.92em}
+pre{background:#0F172A;color:#E2E8F0;padding:18px;border-radius:10px;overflow:auto;line-height:1.5}
+:not(pre)>code{background:var(--accent-soft);color:var(--accent);padding:1px 6px;border-radius:6px}
+blockquote{margin:16px 0;padding:8px 18px;border-left:4px solid var(--accent);
+  background:var(--accent-soft);color:#1e3a8a;border-radius:0 8px 8px 0}
+table{width:100%;border-collapse:collapse;margin:16px 0;font-size:.92rem}
+th,td{border:1px solid var(--border);padding:10px 12px;text-align:left;vertical-align:top}
+th{background:var(--surface)}
+a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+.toc{font-size:.95rem}.toc a{color:var(--muted)}
+.toc ul{margin:.3em 0;padding-left:1.2em}
+.toc>ul{padding-left:0;list-style:none}
+.warn{border-left:4px solid #dc2626;background:#fef2f2;color:#7f1d1d;border-radius:0 8px 8px 0;padding:12px 18px;margin:16px 0}
+hr{border:none;border-top:1px solid var(--border);margin:2.4em 0}
+.pill-row{margin:.6em 0 1.2em}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>JoyAI-VL-Interaction: Real-Time Vision-Language Interaction Intelligence</h1>
+<p class="muted">Junhao Zhou, Chenxu Yang, Chuanyu Qin, Haowen Hou 외 · JD.com (jd-opensource) · 2026 · CC BY 4.0</p>
+<p class="muted">
+  arXiv: <a href="https://arxiv.org/html/2606.14777">2606.14777</a> ·
+  HuggingFace: <a href="https://huggingface.co/papers/2606.14777">papers/2606.14777</a> ·
+  GitHub: <a href="https://github.com/jd-opensource/JoyAI-VL-Interaction">jd-opensource/JoyAI-VL-Interaction</a> ·
+  <a href="https://joyai-vl-video-future-academy-jd.github.io/JoyAI-VL-Interaction/">프로젝트 페이지</a>
+</p>
+<div class="pill-row">
+  <span class="badge">Vision-Language Model</span>
+  <span class="badge">실시간 비디오 스트리밍</span>
+  <span class="badge">Proactive Interaction</span>
+  <span class="badge">Per-second 의사결정</span>
+  <span class="badge">Streaming Video Understanding</span>
+  <span class="badge">멀티모달 에이전트</span>
+  <span class="badge">8B VLM</span>
+</div>
+
+<nav class="toc card">
+  <strong>목차</strong>
+  <ul>
+    <li><a href="#analysis">1. 논문 분석 (Analysis)</a>
+      <ul>
+        <li><a href="#a-summary">한 줄 요약 · 문제 · 한계</a></li>
+        <li><a href="#a-method">제안 방법 (Method)</a></li>
+        <li><a href="#a-contrib">기여 · 실험 결과</a></li>
+        <li><a href="#a-impl">한계 · 구현 단서</a></li>
+      </ul>
+    </li>
+    <li><a href="#detail">2. 상세 해설 (Detail)</a>
+      <ul>
+        <li><a href="#d-pre">공통 사전 지식</a></li>
+        <li><a href="#d-c1">개념 1 — 능동적 실시간 상호작용 · 행동으로서의 침묵</a></li>
+        <li><a href="#d-c2">개념 2 — 가중 CE 손실 × 4M+ 시간정렬 데이터셋</a></li>
+        <li><a href="#d-c3">개념 3 — 계층적 기억 + 백그라운드 위임</a></li>
+      </ul>
+    </li>
+    <li><a href="#code">3. 구현 코드 분석 (Code)</a>
+      <ul>
+        <li><a href="#c-adacodec">핵심 발견 — AdaCodec 미구현</a></li>
+        <li><a href="#c-map">논문 ↔ 코드 매핑 표</a></li>
+        <li><a href="#c-p0">Part 0 — 시각 코덱 + 베이스 모델</a></li>
+        <li><a href="#c-p1">Part 1 — per-second 결정 루프 + 학습</a></li>
+        <li><a href="#c-p2">Part 2 — 종단 서빙 스택</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+
+<!-- ================= SECTION 1: ANALYSIS ================= -->
+<h2 id="analysis">1. 논문 분석 (Analysis)</h2>
+
+<div class="card" id="a-summary">
+<h3>한 줄 요약</h3>
+<p>비디오 스트림을 초당 관찰하며 "응답할지·침묵할지·백그라운드에 위임할지"를 스스로 학습된 방식으로 결정하는 8B 규모 비전-언어 모델과, 수 시간 연속 영상을 서브초 지연으로 처리하는 배포 가능한 전체 시스템을 제시한다.</p>
+
+<h3>해결하려는 문제 (Motivation)</h3>
+<ul>
+  <li>현재 대형 모델은 본질적으로 턴 기반(turn-based)이라 사용자가 프롬프트를 줄 때만 응답한다.</li>
+  <li>그러나 현실 시나리오는 능동적 개입을 요구한다: 보안 모니터에 화재 발생, 영상 통화 중 표정 변화, 라이브 스트림에서 원하는 상품이 스쳐 지나가는 순간 등.</li>
+  <li>물리 세계는 사용자 질의를 기다려 멈추지 않는데, 기존 시스템은 근본적으로 반응형(reactive)이라 "언제 말할지"를 스스로 결정하지 못한다.</li>
+</ul>
+
+<h3>기존 접근의 한계</h3>
+<ul>
+  <li><strong>턴 기반 시스템</strong> (GPT-Realtime-2, Qwen3.5-Omni): 낮은 지연과 네이티브 아키텍처에도 불구하고 대화 턴 교대에 최적화되어 있어 자율적 응답 결정을 못 한다.</li>
+  <li><strong>폴링 기반 제품</strong> (Doubao, Gemini): 외부 트리거가 몇 초마다 요청을 발화하므로 반응 지연이 추론 속도가 아닌 폴링 간격에 의해 제한된다.</li>
+  <li><strong>스트리밍 비디오 연구</strong>: 보통 반응성·능동성·기억 중 한 속성만 개별 향상시키고 배포 인프라 없이 실험실 단계에 머무르며, 실시간 동작과 장기(long-horizon) 능력을 결합하는 경우가 드물다.</li>
+</ul>
+</div>
+
+<div class="card" id="a-method">
+<h3>제안 방법 (Method) — 핵심 아이디어와 동작 원리</h3>
+<p><strong>핵심 혁신</strong>: 응답 타이밍을 학습된 per-second 모델 결정으로 만든다. 매 타임스텝마다 세 가지 중 하나를 출력:</p>
+<ul>
+  <li><code>&lt;/silence&gt;</code>: 말하지 않고 계속 관찰</li>
+  <li><code>&lt;/response&gt;</code>: 텍스트 응답 발화</li>
+  <li><code>&lt;/delegate&gt;</code>: 어려운 하위 작업을 백그라운드 모델에 비동기 위임</li>
+</ul>
+
+<h4>모델 아키텍처</h4>
+<ul>
+  <li>베이스: JoyAI-VL 1.0 (언어 모델은 Qwen3-8B 초기화, 시각 인코더는 Qwen3-VL ViT)</li>
+  <li>representation alignment → 비전-언어 사전학습 → On-Policy Distillation 및 RL 후처리로 학습</li>
+  <li><strong>AdaCodec (예측적 시각 코덱)</strong>: 참조 프레임은 전체 ViT 토큰, 예측 가능 프레임은 모션/잔차로부터 압축된 P-토큰(프레임당 약 16토큰)으로 인코딩. 장면 전환 시 참조 프레임을 적응적으로 배치하여 비용이 프레임 수가 아닌 장면 복잡도에 비례.</li>
+</ul>
+
+<h4>학습 데이터 구성</h4>
+<p>4M+ 시간 정렬(time-aligned) 스트리밍 클립을 6개 계열로 조직 — (1) 능동 경보/이상 탐지, (2) 시간 정렬 QA(과거·현재·미래 타이밍), (3) 시간축 카운팅/지각, (4) 라이브 해설/내레이션, (5) 다중 턴 캐주얼 챗, (6) 위임 에피소드. Per-second 감독은 내용 정확성·타이밍 정확성 두 축 검증, 검증 에이전트 다단계 파이프라인, 침묵(silence)을 라벨 부재가 아닌 일급(first-class) 라벨로 취급.</p>
+
+<h4>학습 레시피</h4>
+<ul>
+  <li>지도 학습: 시간 정렬 상호작용 데이터에 가중 손실 적용. $w_{\text{silence}}^{\text{first}}=1$, $w_{\text{silence}}^{\text{repeated}}=0.4$, $w_{\text{response}}=1.5$; 턴 기반 데이터는 표준 SFT 손실.</li>
+  <li>강화학습: EasyVideoR1 상 GRPO. answer-centered window 샘플링으로 수백 개 침묵 턴을 소수의 관련 턴으로 압축. 보상 = 정확성 + 타이밍 윈도우 + 적절한 침묵 + 잘 판단된 위임, LLM judge가 태스크별 루브릭으로 응답 품질 채점.</li>
+</ul>
+
+<h4>시스템 아키텍처</h4>
+<p>두 개의 동시 루프 — (1) 실시간 루프(WebRTC/RTSP 수신, 1Hz 샘플링, speak/silence/delegate 결정, ASR/TTS 플러그형), (2) 비동기 루프(고정·모델 무관 텍스트 프로토콜 배경 브릿지, 타임아웃·취소·결과 병합 처리). 계층적 장기 기억: 단기 $T_s=100$초 원시 비전 토큰, 중기 $M=5$ 요약, 장기 $L=15$ 블록(총 약 2시간). vLLM 네이티브 서빙 + prefix caching으로 2시간 이상 연속 영상에서 서브초 종단 지연.</p>
+</div>
+
+<div class="card" id="a-contrib">
+<h3>핵심 기여 (Contributions)</h3>
+<ul>
+  <li><strong>JoyAI-VL-Interaction 모델</strong>: 시간 정렬 데이터로 학습해 per-second 자율 결정을 내리는 8B vision-first VLM. 명시적으로 학습하지 않은 창발적 능력(앱 안내, 타이밍 내레이션) 발현.</li>
+  <li><strong>완전한 배포 가능 시스템</strong>: 플러그형 ASR/TTS, 메모리, 배경 브릿지, 시각화 UI를 갖춘 종단 스택으로 표준 vLLM 인프라에서 구동.</li>
+  <li><strong>학습 레시피 및 데이터</strong>: 시간 정렬 감독을 위한 전이 가능 방법론을 오픈소스 아티팩트로 공개.</li>
+</ul>
+
+<h3>실험 / 결과 — 데이터셋, 지표, 주요 수치</h3>
+<ul>
+  <li><strong>벤치마크</strong>: 6개 일상 이벤트 구동 시나리오 총 58개 케이스 — 모니터링/경보(10), 실시간 카운팅(10), 실시간 번역(10), 시간 인식(10), 라이브 해설(9), 장기 기억(9).</li>
+  <li><strong>베이스라인</strong>: Doubao, Gemini의 인앱 영상 통화 어시스턴트(2026년 5~6월 배포).</li>
+  <li><strong>평가 프로토콜</strong>: 대학 교육 수준 LLM 연구자 5명 human rater, 품질+타이밍 두 축 동일 가중(3단계 척도), 승/무/패 비교, 무작위 제시 및 시스템 정체 은닉.</li>
+</ul>
+<table>
+  <thead><tr><th>비교 대상</th><th>전체 승/무/패</th><th>세부 (승률)</th></tr></thead>
+  <tbody>
+    <tr><td>vs. Doubao</td><td><strong>77.6% 승</strong> / 17.2% 무 / 5.2% 패</td><td>모니터링 100%, 카운팅 70%, 번역 80%, 시간 인식 80%, 해설 55.6%, 기억 77.8%</td></tr>
+    <tr><td>vs. Gemini</td><td><strong>87.9% 승</strong> / 10.3% 무 / 1.7% 패</td><td>모니터링·카운팅·번역·해설 각 100%, 시간 인식 50%승/40%무, 기억 77.8%</td></tr>
+  </tbody>
+</table>
+<ul>
+  <li><strong>사례 연구</strong>: 낙상 감지 — JoyAI는 낙상 시작 시 응답, Doubao 4~5초 지연, Gemini 불가. 다트 카운팅 — 6회 던지기 모두 정시 카운트 vs Doubao 2회·Gemini 1회. 20초 타이밍 — ±1~2초 vs Doubao(신호 없음)·Gemini(약 40초).</li>
+  <li><strong>창발적 능력</strong>: 변화하는 앱 화면 안내, 슬라이드 덱으로부터 즉흥 강의, 지정 간격 타이밍 내레이션.</li>
+</ul>
+</div>
+
+<div class="card" id="a-impl">
+<h3>한계 및 향후 과제</h3>
+<ul>
+  <li><strong>규모 열세</strong>: Gemini-3.1-flash-live, Seed 2.0 대비 8B 모델은 지식 폭이 좁고 복잡 입력 견고성이 낮음. 해설 중 간헐적 환각.</li>
+  <li><strong>초기 단계 데이터</strong>: 코퍼스가 아직 mixture 튜닝·목표 규모 확장 전이며 한 번의 정제 패스가 더 필요.</li>
+  <li><strong>제한적 평가</strong>: 6개 시나리오·58 케이스·2개 제품에 한정, 더 크고 세밀한 연구 예정.</li>
+  <li><strong>고빈도 출력</strong>: 라이브 해설·실시간 자막 등 거의 연속 출력에 대한 ASR/TTS 동기화 미해결.</li>
+  <li>향후: 데이터 mixture 확장·튜닝, 벤치마크 확대, 대형 모델과 일반 능력 격차 축소, 희귀/복잡 입력 견고성 개선, 고빈도 출력 정규 처리. 저자들은 이를 구조적 결함이 아닌 로드맵 항목으로 규정.</li>
+</ul>
+
+<h3>구현 단서 — 저장소 링크, 핵심 하이퍼파라미터</h3>
+<ul>
+  <li><strong>공식 GitHub</strong>: <a href="https://github.com/jd-opensource/JoyAI-VL-Interaction">github.com/jd-opensource/JoyAI-VL-Interaction</a></li>
+  <li><strong>프로젝트 페이지</strong>: <a href="https://joyai-vl-video-future-academy-jd.github.io/JoyAI-VL-Interaction/">joyai-vl-video-future-academy-jd.github.io</a></li>
+  <li><strong>릴리스</strong>: 모델 가중치·상호작용 데이터·전체 시스템 코드를 2026년 6월 20일까지 공개. 라이선스 CC BY 4.0.</li>
+</ul>
+<table>
+  <thead><tr><th>항목</th><th>값</th></tr></thead>
+  <tbody>
+    <tr><td>손실 가중치</td><td>$w_{\text{silence}}^{\text{first}}=1$, $w_{\text{silence}}^{\text{repeated}}=0.4$, $w_{\text{response}}=1.5$</td></tr>
+    <tr><td>메모리</td><td>$T_s=100$초, $M=5$, $L=15$ (총 약 2시간)</td></tr>
+    <tr><td>기본 샘플링</td><td>1 Hz</td></tr>
+    <tr><td>AdaCodec</td><td>예측 프레임당 약 16토큰</td></tr>
+    <tr><td>RL 프레임워크</td><td>GRPO (EasyVideoR1)</td></tr>
+    <tr><td>모델 규모</td><td>약 8B 파라미터, 베이스 LM Qwen3-8B, 시각 인코더 Qwen3-VL ViT</td></tr>
+  </tbody>
+</table>
+</div>
+
+<hr>
+
+<!-- ================= SECTION 2: DETAIL ================= -->
+<h2 id="detail">2. 상세 해설 (Detail)</h2>
+<blockquote>
+이 문서는 논문의 핵심 개념 세 가지를 <em>직관 → 비유 → 단계별 전개 → 예시</em> 순서로 풀어 씁니다. 세 개념은 서로 맞물려 하나의 시스템을 이룹니다.<br>
+1. <strong>능동적 실시간 상호작용 패러다임과 "행동으로서의 침묵"</strong> — 매초 스스로 말할지/침묵할지 결정<br>
+2. <strong>가중 CE 손실 학습 × 4M+ 시간정렬 데이터셋</strong> — 무엇으로, 어떻게 배우는가<br>
+3. <strong>계층적 기억 + 백그라운드 작업 위임</strong> — 몇 시간을 실시간으로 버티는 두 장치
+</blockquote>
+
+<div class="card" id="d-pre">
+<h3>공통 사전 지식 (꼭 알아야 할 개념)</h3>
+<ul>
+  <li><strong>VLM (Vision-Language Model)</strong>: 이미지/영상(눈)과 글자(입)를 동시에 다루는 AI. "영상을 보고 말로 대답하는 모델".</li>
+  <li><strong>턴 기반(turn-based)</strong>: 사람이 한마디 하면 → 모델이 한마디 답하는, 탁구처럼 번갈아 주고받는 방식.</li>
+  <li><strong>반응형(reactive) vs 능동형(proactive)</strong>: 반응형 = 누가 물어봐야만 움직임. 능동형 = 아무도 안 물어봐도 스스로 "지금 말해야겠다"를 판단.</li>
+  <li><strong>스트리밍 비디오</strong>: 실시간으로 계속 들어오는 영상 (CCTV, 영상통화 화면).</li>
+  <li><strong>1 Hz 샘플링 / 타임스텝</strong>: 1초에 1번 프레임을 뽑음. 1타임스텝 = 1초. 2시간이면 7200프레임 = 7200번 관찰.</li>
+  <li><strong>토큰</strong>: 모델이 처리하는 최소 조각. <code>&lt;/silence&gt;</code>, <code>&lt;/response&gt;</code>, <code>&lt;/delegate&gt;</code> 같은 특수 결정 토큰도 포함.</li>
+  <li><strong>per-second 의사결정</strong>: 매 1초마다 세 선택지 중 하나를 출력.</li>
+  <li><strong>침묵을 일급 라벨로 취급</strong>: "아무 말도 안 함"을 라벨 부재가 아닌 <code>&lt;/silence&gt;</code>라는 정식 정답 토큰으로 명시.</li>
+  <li><strong>손실 / 교차엔트로피(CE)</strong>: 학습 중 "틀린 정도"를 나타내는 벌점. 정답 토큰에 높은 확률을 주면 벌점이 작음.</li>
+  <li><strong>손실 가중치($w$)</strong>: 각 항목의 벌점에 곱하는 배율. $w=1.5$면 1.5배 중요, $w=0.4$면 0.4배만 신경.</li>
+  <li><strong>시간정렬(time-aligned)</strong>: 영상의 초 단위 시각마다 정답이 붙음. 1초 = 1개 정답 라벨.</li>
+  <li><strong>SFT</strong>: 정답이 달린 데이터로 모델을 직접 흉내 내게 만드는 표준 학습 단계.</li>
+  <li><strong>동기 vs 비동기</strong>: 동기 = 끝날 때까지 기다림. 비동기 = 일을 시켜 놓고 다른 일 계속. 위임은 비동기의 핵심.</li>
+  <li><strong>컨텍스트 윈도우</strong>: 모델이 한 번에 볼 수 있는 정보의 최대 크기.</li>
+</ul>
+</div>
+
+<div class="card" id="d-c1">
+<h3>개념 1 — 능동적 실시간 상호작용 패러다임과 "행동으로서의 침묵"</h3>
+<p class="muted">개념 이름: <code>proactive_realtime_interaction_paradigm_and_silence_as_action</code></p>
+
+<h4>직관 (결국 무엇을 하려는가)</h4>
+<p>지금까지의 대형 AI 모델은 근본적으로 <strong>"물어보면 답하는 기계"</strong>였습니다. 사용자가 프롬프트를 넣는 순간에만 입을 엽니다. 그런데 현실 세계는 우리가 질문할 때까지 기다려 주지 않습니다. CCTV에서 <strong>불이 나는 순간</strong>, 영상통화 중 상대의 <strong>표정이 굳는 순간</strong>, 라이브 커머스에서 <strong>원하던 상품이 스쳐 지나가는 순간</strong> — 이 결정적 타이밍은 "사용자 질문"과 무관하게 일어납니다.</p>
+<p>그래서 이 논문은 모델을 <strong>매 1초마다 영상을 보고 "지금 내가 무엇을 할지" 스스로 결정하는 존재</strong>로 만듭니다.</p>
+<ol>
+  <li><strong>말하기(<code>&lt;/response&gt;</code>)</strong>: 지금이 말할 타이밍 → 텍스트로 응답.</li>
+  <li><strong>침묵(<code>&lt;/silence&gt;</code>)</strong>: 아직 말할 때가 아님 → 입을 다물고 계속 관찰.</li>
+  <li><strong>위임(<code>&lt;/delegate&gt;</code>)</strong>: 무거운 작업 → 백그라운드 모델에게 비동기로 넘김.</li>
+</ol>
+<p>이 개념의 <strong>가장 중요한 통찰</strong>은 바로 <strong>"침묵도 하나의 능동적 행동"</strong>이라는 발상입니다. 침묵을 "라벨이 없어서"가 아니라 <strong>"내가 지금 일부러 말하지 않기로 결정한 것"</strong>이라는 일급(first-class) 행동으로 취급합니다. 그래야 모델은 "언제 말할지"뿐 아니라 "언제 말하지 않을지"까지 정확히 배웁니다.</p>
+
+<h4>비유 — 축구 중계 카메라 감독</h4>
+<ul>
+  <li>옛날 방식(턴 기반)은 "감독님, 지금 화면 어때요?"라고 PD가 물어봐야만 대답하는 카메라 감독. PD가 안 물으면 골이 들어가도 입을 다뭅니다.</li>
+  <li>이 논문의 방식은 90분 내내 경기장을 지켜보다가 "골 찬스다!" 싶은 순간에 스스로 "지금 이 앵글 잡아!"라고 외치는 감독.</li>
+  <li>핵심: 이 감독은 대부분의 시간 동안 "아직 아니야, 기다려"라고 조용히 관찰합니다. 이 "기다려"가 바로 <strong>침묵이라는 능동적 행동</strong>입니다.</li>
+</ul>
+
+<h4>단계별 전개</h4>
+<p><strong>(1) 매초 3지선다로 만들기</strong> — 매 타임스텝 $t$(=1초)마다 모델은 세 태그 중 하나를 냅니다.</p>
+<p>$$a_t \in \{\ \texttt{</silence>},\ \ \texttt{</response>},\ \ \texttt{</delegate>}\ \}$$</p>
+<p>"아무것도 안 함"이라는 네 번째 공백 상태는 없습니다. 그래서 <strong>침묵조차 명시적 선택</strong>이 됩니다.</p>
+<p><strong>(2) 침묵을 "정답 라벨"로 취급하기</strong> — 침묵이 정답인 초에는 <code>&lt;/silence&gt;</code>를 진짜 정답으로 기록합니다(라벨을 비워두는 게 아니라). 논문은 이를 <em>"라벨 부재가 아니라 일급 라벨"</em>로 표현합니다.</p>
+<p><strong>(3) 실수에 서로 다른 벌점 배율 주기</strong> — 스트리밍 영상은 대부분의 초가 침묵이 정답이라 그냥 두면 "무조건 침묵"하는 겁쟁이가 됩니다.</p>
+<p>$$w_{\text{silence}}^{\text{first}} = 1,\qquad w_{\text{silence}}^{\text{repeated}} = 0.4,\qquad w_{\text{response}} = 1.5$$</p>
+<ul>
+  <li>$w_{\text{response}} = 1.5$ : "말해야 할 때"에 대한 배율. 가장 큼 → 결정적 순간을 놓치지 않도록.</li>
+  <li>$w_{\text{silence}}^{\text{first}} = 1$ : 침묵 구간이 막 시작된 첫 초. 보통 세기.</li>
+  <li>$w_{\text{silence}}^{\text{repeated}} = 0.4$ : 침묵이 계속 이어지는 반복 초. 낮춤 → 수많은 "쉬운 침묵"이 학습을 지배하지 않도록.</li>
+</ul>
+<blockquote>"말하기 실수는 크게(1.5) 혼내고, 침묵의 첫 초는 보통(1)으로 배우되, 지루하게 반복되는 침묵은 작게(0.4) 세어서 균형을 맞춘다."</blockquote>
+<p><strong>(4) 강화학습(RL)으로 다듬기</strong> — GRPO(EasyVideoR1)로 추가 학습. <strong>answer-centered window 샘플링</strong>으로 수백 개 침묵 턴을 소수의 관련 턴으로 압축.</p>
+<p>$$\text{Reward} = (\text{정확성}) + (\text{타이밍 윈도우 적중}) + (\text{적절한 침묵}) + (\text{잘 판단된 위임})$$</p>
+<p>여기서도 "적절한 침묵"이 보상 항목에 명시적으로 들어갑니다.</p>
+
+<h4>예시 (낙상 감지 토이 시나리오)</h4>
+<p>거실 CCTV. 노인이 방을 가로질러 걷다가 5초 구간에서 넘어짐. 목표는 "넘어지는 순간 경보".</p>
+<table>
+  <thead><tr><th>초($t$)</th><th>화면 상황</th><th>정답 라벨</th><th>가중치</th></tr></thead>
+  <tbody>
+    <tr><td>1</td><td>노인이 서 있음</td><td><code>&lt;/silence&gt;</code></td><td>$w_{\text{silence}}^{\text{first}}=1$</td></tr>
+    <tr><td>2</td><td>걷기 시작</td><td><code>&lt;/silence&gt;</code></td><td>$w_{\text{silence}}^{\text{repeated}}=0.4$</td></tr>
+    <tr><td>3</td><td>계속 걸음</td><td><code>&lt;/silence&gt;</code></td><td>$0.4$</td></tr>
+    <tr><td>4</td><td>비틀거림</td><td><code>&lt;/silence&gt;</code></td><td>$0.4$</td></tr>
+    <tr><td><strong>5</strong></td><td><strong>넘어짐 발생</strong></td><td><strong><code>&lt;/response&gt;</code></strong> ("낙상 감지! 도움이 필요합니다")</td><td>$w_{\text{response}}=1.5$</td></tr>
+    <tr><td>6</td><td>바닥에 누움</td><td><code>&lt;/silence&gt;</code></td><td>$1$ (새 침묵 시작)</td></tr>
+    <tr><td>7~10</td><td>그대로</td><td><code>&lt;/silence&gt;</code></td><td>$0.4$ (반복 침묵)</td></tr>
+  </tbody>
+</table>
+<p><strong>대조</strong>: 실제로 JoyAI-VL은 "5초 시점"에 즉시 반응한 반면, Doubao는 4~5초 늦게 반응했고 Gemini는 아예 감지하지 못했습니다.</p>
+
+<h4>전체 흐름 한눈에 보기</h4>
+<pre>                      [ 실시간 영상 스트림, 1초에 한 프레임씩 들어옴 ]
+                                        │
+                                        ▼
+   매 타임스텝 t (=1초) 마다 ──►  ┌───────────────────────────┐
+                                  │   JoyAI-VL-Interaction     │
+                                  │  "지금 나는 무엇을 할까?"   │
+                                  └───────────┬───────────────┘
+                                              │  3지선다로 출력
+             ┌────────────────────────────────┼────────────────────────────────┐
+             ▼                                 ▼                                ▼
+      &lt;/silence&gt;                        &lt;/response&gt;                       &lt;/delegate&gt;
+    (능동적 침묵:                     (지금이 타이밍:                   (무거운 작업은
+     "아직 아니야,                     텍스트로 발화)                    백그라운드로
+      계속 관찰")                                                         비동기 위임)
+             │                                 │                                │
+             └───────────────┬─────────────────┴────────────────────────────────┘
+                             ▼
+        [ 학습 신호 ]  말하기 실수 ×1.5 │ 첫 침묵 ×1.0 │ 반복 침묵 ×0.4
+                             ▼
+        결과: 아무 때나 떠들지 않고, 결정적 순간에만 정확히 개입하는 모델</pre>
+
+<h4>자주 하는 오해 (FAQ)</h4>
+<p><strong>Q1. "매초 판단"이면 폴링이랑 똑같은 거 아닌가요?</strong><br>
+아닙니다. 폴링 제품은 외부 트리거가 몇 초마다 찔러야 반응해 속도가 폴링 간격에 묶입니다. 이 패러다임은 모델 자신이 매초 스스로 결정합니다.</p>
+<p><strong>Q2. 침묵이 그냥 "출력 안 함"과 뭐가 다른가요?</strong><br>
+"출력 안 함"은 공백이고, 이 논문의 침묵은 명시적으로 선택한 행동(<code>&lt;/silence&gt;</code> 라벨)입니다. 침묵을 고르는 것도 정답으로 채점·보상받습니다.</p>
+<p><strong>Q3. 침묵 가중치를 왜 첫 초(1)와 반복(0.4)으로 나눴나요?</strong><br>
+전부 같은 배율이면 "쉬운 침묵" 데이터가 학습을 지배해 겁쟁이가 됩니다. 반복 침묵을 0.4로 낮춰 데이터 불균형을 바로잡습니다.</p>
+<p><strong>Q4. 위임(<code>&lt;/delegate&gt;</code>)은 왜 필요한가요?</strong><br>
+실시간 루프는 서브초 지연을 유지해야 하는데 복잡한 작업은 그 안에 못 끝냅니다. "말하기 vs 침묵"이 타이밍 문제라면 "위임"은 무게(부하) 문제를 푸는 세 번째 선택지입니다.</p>
+<p><strong>Q5. 이게 왜 중요한 기여인가요?</strong><br>
+기존 연구는 반응성·능동성·기억 중 하나만 개선하고 실험실에 머물렀습니다. "매초 능동 결정 + 침묵을 일급 행동으로"는 배포 가능한 시스템 위에서 "언제 말할지"를 학습된 결정으로 만든 것이 핵심입니다.</p>
+</div>
+
+<div class="card" id="d-c2">
+<h3>개념 2 — 가중 CE 손실 학습 × 4M+ 시간정렬 데이터셋</h3>
+<p class="muted">개념 이름: <code>weighted_ce_loss_training_and_4m_timealigned_dataset</code></p>
+<p>두 톱니바퀴가 맞물린 시스템: ① <strong>무엇으로 배우는가</strong> = 4M+ 시간정렬 데이터셋, ② <strong>어떻게 배우는가</strong> = 가중 교차엔트로피(CE) 손실.</p>
+
+<h4>직관</h4>
+<p>이 모델이 배워야 하는 능력은 "무엇을 말하느냐"가 아니라 <strong>"언제 말하고, 언제 입을 다무느냐"</strong>입니다. 그런데 현실 영상은 압도적으로 대부분이 "침묵해야 할 순간"입니다. 모든 라벨을 똑같은 무게로 배우면 모델은 "그냥 항상 침묵하면 벌점이 제일 낮네"라는 게으른 정답에 빠져 결정적 순간에도 입을 안 여는 벙어리가 됩니다.</p>
+<p>그래서 두 장치가 필요합니다: (1) <strong>4M+ 시간정렬 데이터셋</strong> — 매 초마다 정답이 붙은 방대한 스트리밍 영상, 침묵조차 <code>&lt;/silence&gt;</code>로 존재. (2) <strong>가중 CE 손실</strong> — 응답 ×1.5, 첫 침묵 ×1, 반복 침묵 ×0.4.</p>
+
+<h4>비유 — 응급실 신입 간호사 교육</h4>
+<ul>
+  <li>대부분의 시간은 "환자가 안정적이니 조용히 지켜보는" 시간 → <strong>침묵</strong>.</li>
+  <li>환자 심박이 급변하는 결정적 순간엔 즉시 큰 소리로 알림 → <strong>응답</strong>.</li>
+  <li>능력 밖 복잡한 처치는 전문의 호출 → <strong>위임</strong>.</li>
+</ul>
+<p>좋은 교육은 위급 상황 대응 1회를 조용한 순간 100번보다 훨씬 무겁게 채점(×1.5)하고, 반복적 "이상 없음"은 거의 신경 안 씀(×0.4)으로 둡니다.</p>
+
+<h4>단계별 전개</h4>
+<p><strong>(A) 데이터셋 — 4M+ 시간정렬 스트리밍 클립</strong></p>
+<ul>
+  <li>규모: 400만 시간 이상, 각 클립은 프레임 시퀀스 + 초 단위 정답 라벨.</li>
+  <li>6개 계열: (1) 능동 경보/이상 탐지, (2) 시간정렬 QA, (3) 시간축 카운팅/지각, (4) 라이브 해설, (5) 다중 턴 챗, (6) 위임 에피소드.</li>
+  <li>2축 검증: 내용 정확성 + 타이밍 정확성 (다단계 검증 에이전트 파이프라인).</li>
+  <li>침묵 = 일급 라벨: 아무 일 없는 초를 <code>&lt;/silence&gt;</code>로 채움.</li>
+</ul>
+<p><strong>(B) 손실 — 가중 CE 손실 (지도 학습 단계)</strong></p>
+<p>$$\mathcal{L} \;=\; \sum_{t}\; w_t \cdot \mathrm{CE}\big(\text{모델 예측}_t,\; \text{정답 라벨}_t\big)$$</p>
+<table>
+  <thead><tr><th>상황</th><th>기호</th><th>값</th><th>의미</th></tr></thead>
+  <tbody>
+    <tr><td>처음 침묵 전환 초</td><td>$w_{\text{silence}}^{\text{first}}$</td><td><strong>1.0</strong></td><td>첫 침묵 결정은 정상 무게로 학습</td></tr>
+    <tr><td>반복 침묵 초</td><td>$w_{\text{silence}}^{\text{repeated}}$</td><td><strong>0.4</strong></td><td>계속 조용한 구간은 가볍게(침묵 편향 방지)</td></tr>
+    <tr><td>응답(발화) 초</td><td>$w_{\text{response}}$</td><td><strong>1.5</strong></td><td>말해야 하는 결정적 순간을 가장 무겁게</td></tr>
+  </tbody>
+</table>
+<p>부등호 구조 $w_{\text{response}}=1.5 > w_{\text{silence}}^{\text{first}}=1 > w_{\text{silence}}^{\text{repeated}}=0.4$ 가 핵심입니다.</p>
+<p><strong>(C) 이후 단계와의 연결</strong> — 가중 CE = 뼈대를 세우는 단계, 이후 RL(GRPO, answer-centered window)이 다듬는 단계입니다.</p>
+
+<h4>예시 (토이 입력으로 따라가기)</h4>
+<pre>초:   1   2   3   4   5   6   7   8   9   10
+정답: S   S   S   S   R   S   S   S   S   S
+       └ 앞부분 4초는 조용함    ↑ 5초에 사람이 쓰러짐 → 응답!  └ 다시 조용함
+   (S = &lt;/silence&gt;, R = &lt;/response&gt;)</pre>
+<p>총 손실(개념적):</p>
+<p>$$\mathcal{L} = 1.0\cdot\mathrm{CE}_1 + 0.4(\mathrm{CE}_2+\mathrm{CE}_3+\mathrm{CE}_4) + 1.5\cdot\mathrm{CE}_5 + 1.0\cdot\mathrm{CE}_6 + 0.4(\mathrm{CE}_7+\dots+\mathrm{CE}_{10})$$</p>
+<p>모든 초의 CE가 1이라 가정: 침묵 8초 실효 무게 = $1.0 + 0.4\times3 + 1.0 + 0.4\times4 = 4.8$, 응답 1초 = $1.5$. 가중치가 없다면 손실의 89%가 침묵이라 "무조건 S"로 붕괴하지만, 가중치를 쓰면 응답의 상대적 비중이 크게 올라 5초의 결정적 발화를 확실히 배웁니다.</p>
+
+<h4>전체 흐름 한눈에 보기</h4>
+<pre>[4M+ 시간정렬 스트리밍 클립]
+   6개 계열(경보·시간QA·카운팅·해설·챗·위임)
+   초 단위 정답 라벨 (침묵도 일급 라벨 &lt;/silence&gt;)
+   2축 검증(내용 정확성 + 타이밍 정확성) by 검증 에이전트
+                    │
+                    ▼   매 1초 타임스텝마다 라벨 부여
+[가중 CE 손실 적용 지도 학습(SFT)]
+   L = Σ_t  w_t · CE(예측_t, 정답_t)
+   w:  응답 1.5  >  첫 침묵 1.0  >  반복 침묵 0.4
+   (턴 기반 일반 대화 데이터는 표준 SFT 손실)
+                    │
+                    ▼
+[결과] 평소엔 &lt;/silence&gt;로 조용, 결정적 순간에만 &lt;/response&gt;,
+        버거운 작업은 &lt;/delegate&gt; — per-second 능동 결정 능력의 뼈대 완성
+                    │
+                    ▼  (이후 단계: RL/GRPO로 타이밍·품질 미세 조정)</pre>
+
+<h4>자주 하는 오해 (FAQ)</h4>
+<p><strong>Q1. 가중치 0.4는 "침묵을 벌준다"는 뜻인가요?</strong> 아니요. 0.4는 벌점이 아니라 학습 중요도(무게)입니다. 반복 침묵도 옳은 정답으로 배우되 물량이 손실을 지배하지 않도록 무게만 낮춘 것입니다.</p>
+<p><strong>Q2. 왜 '첫 침묵'(1.0)과 '반복 침묵'(0.4)을 구분하나요?</strong> "말할 때가 아니다"라고 처음 판단하는 결정은 중요한 능동적 선택이라 온전히 배웁니다.</p>
+<p><strong>Q3. '시간정렬'이 보통 영상 QA 데이터와 뭐가 다른가요?</strong> 보통 데이터는 "영상 1개 → 질문 1개 → 답 1개"라 타이밍 정보가 없습니다. 시간정렬 데이터는 매 초 정답이 붙어 타이밍까지 배웁니다.</p>
+<p><strong>Q4. 4M+는 "샘플 400만 개"인가요?</strong> 논문 표기 기준 400만 시간(hours) 이상. 개수가 아니라 총 영상 길이 규모입니다(정확한 단위는 원논문 확인 권장).</p>
+<p><strong>Q5. 가중 CE만으로 타이밍이 완성되나요?</strong> 아니요. 이후 강화학습(GRPO)이 타이밍 윈도우·응답 품질·적절한 침묵·위임 판단을 보상으로 정교화합니다.</p>
+</div>
+
+<div class="card" id="d-c3">
+<h3>개념 3 — 계층적 기억 + 백그라운드 작업 위임</h3>
+<p class="muted">개념 이름: <code>hierarchical_memory_and_background_task_delegation</code></p>
+
+<h4>왜 이 개념이 필요한가</h4>
+<p>이 모델은 끊기지 않는 비디오를 초당 1프레임(1 Hz)으로 몇 시간이고 봅니다. 두 가지 근본 문제가 생깁니다.</p>
+<ol>
+  <li><strong>기억 문제</strong> — 2시간 영상을 매 초 원본 그대로 기억하면 감당할 수 없다. "다 기억하되, 오래된 것일수록 압축해서" → <strong>계층적 기억</strong>.</li>
+  <li><strong>속도 문제</strong> — 오래 걸리는 작업을 붙잡으면 그 사이 실시간 사건을 놓친다. "무거운 일은 뒤로 넘기고 계속 감시" → <strong>백그라운드 위임</strong>.</li>
+</ol>
+<p>계층적 기억이 "무엇을 얼마나 오래 들고 갈지"를, 위임이 "무거운 일을 언제 옆으로 빼둘지"를 정합니다.</p>
+
+<h4>핵심 개념 A — 계층적 장기 기억 (Hierarchical Long-term Memory)</h4>
+<p>시간이 지날수록 정보를 더 세게 압축하는 3단계 서랍:</p>
+<ol>
+  <li><strong>단기 — $T_s = 100$초</strong>: 가장 최근 100초를 원시(raw) 비전 토큰 그대로. 가장 정밀. "지금 넘어졌나?" 같은 즉각 판단.</li>
+  <li><strong>중기 — $M = 5$ 요약</strong>: 100초 지나 밀려난 내용을 요약 5개로 압축.</li>
+  <li><strong>장기 — $L = 15$ 블록</strong>: 중기 요약이 더 오래되면 블록 15개로 더 크게 뭉침. 가장 압축률 높음.</li>
+  <li><strong>전체 용량 — 약 2시간</strong>: 새 정보가 들어오면 오래된 것이 한 단계 더 압축되어 밀려나므로 처리 비용이 거의 일정.</li>
+</ol>
+<blockquote>보조 장치 — <strong>prefix caching(접두 캐싱)</strong>: 이미 계산해 둔 앞부분 결과를 재사용해서 매 초 처음부터 다시 계산하지 않게 한다. (책갈피를 꽂아 두는 것)</blockquote>
+<p><strong>비유</strong>: 사람의 기억과 같습니다. 방금 1~2분 전 대화는 또렷이(단기), 오늘 오전 일은 요약으로만(중기), 지난주 일은 한 덩어리 인상만(장기).</p>
+<table>
+  <thead><tr><th>시각</th><th>사건</th><th>단기(원본 3초)</th><th>중기(요약 2)</th><th>장기(블록 2)</th></tr></thead>
+  <tbody>
+    <tr><td>1~3초</td><td>손님 A 입장, 우유 집음</td><td>[1,2,3]</td><td>—</td><td>—</td></tr>
+    <tr><td>4초</td><td>손님 A 계산대로</td><td>[2,3,4]</td><td>["1~3초: A가 우유 집음"]</td><td>—</td></tr>
+    <tr><td>요약 2개 초과 시</td><td></td><td>항상 최근 3초</td><td>오래된 요약 밀려남</td><td>["오전 초반: A·B 입장, 음료 구매"]</td></tr>
+  </tbody>
+</table>
+
+<h4>핵심 개념 B — 백그라운드 작업 위임 (<code>&lt;/delegate&gt;</code>)</h4>
+<p><code>&lt;/delegate&gt;</code>는 "이건 지금 내가 처리하기엔 무거우니 백그라운드의 다른 모델에게 비동기로 맡기고 나는 계속 실시간 감시하겠다"는 결정입니다. 백그라운드가 답을 다 만들면 결과가 메인 대화로 <strong>병합(merge)</strong>됩니다.</p>
+<p><strong>비유 — 바쁜 식당 홀 매니저</strong>: "물 주세요" → 즉답(<code>&lt;/response&gt;</code>). 아무 일 없음 → 계속 살핌(<code>&lt;/silence&gt;</code>). "단체 40명 견적서" → 사무실 직원에게 넘기고(<code>&lt;/delegate&gt;</code>) 계속 홀을 봄. 완성되면 손님에게 전달(병합).</p>
+<p><strong>단계별 전개</strong>:</p>
+<ol>
+  <li><strong>판단(per-second)</strong>: 매 초 "즉답하기 어려운 하위 작업"인지 스스로 판단 → <code>&lt;/delegate&gt;</code> 출력. 어떤 걸 위임할지는 데이터로 배움.</li>
+  <li><strong>두 개의 동시 루프</strong>: (a) 실시간 루프(WebRTC/RTSP, 1Hz, 절대 안 멈춤), (b) 비동기 루프(백그라운드 모델이 무거운 작업 처리, 분리됨).</li>
+  <li><strong>모델-무관 텍스트 프로토콜</strong>: 고정된 텍스트 규약으로 대화 → 백그라운드 부품 교체 자유.</li>
+  <li><strong>타임아웃·취소·결과 병합</strong>: 너무 오래 걸리면 끊고, 불필요해진 작업은 중단하고, 완성된 결과는 메인 대화로 병합.</li>
+</ol>
+<p><strong>예시 (영상통화 어시스턴트)</strong>:</p>
+<ul>
+  <li><code>t=0s</code> "그냥 계속 지켜봐 줘." → <code>&lt;/silence&gt;</code></li>
+  <li><code>t=12s</code> 30장 슬라이드 덱 "전체 요약해서 강의 노트 만들어줘." → 무겁다 → <code>&lt;/delegate&gt;</code></li>
+  <li><code>t=13~30s</code> 실시간 루프는 계속 화면을 봄 → <code>t=20s</code> 상대 이탈 포착 → <code>&lt;/response&gt;</code> "상대방이 화면에서 사라졌어요."</li>
+  <li><code>t=31s</code> 백그라운드가 강의 노트 완성 → 병합 → <code>&lt;/response&gt;</code> "요청하신 강의 노트가 준비됐어요: …"</li>
+</ul>
+<p>위임 없이 동기 처리했다면 <code>t=20s</code>의 "상대방 이탈"을 놓쳤을 것입니다.</p>
+
+<h4>두 개념이 어떻게 맞물리는가 (핵심 시너지)</h4>
+<ul>
+  <li><strong>계층적 기억</strong> → 장시간 지속(long-horizon)을 가능케 함.</li>
+  <li><strong>위임</strong> → 실시간 반응성(real-time)을 지켜 줌.</li>
+  <li>위임된 백그라운드 작업도 계층적 기억에 쌓인 맥락을 참조해야 처리된다. <strong>기억이 위임 작업의 재료</strong>가 됩니다. 상호 보완 관계.</li>
+</ul>
+
+<h4>전체 흐름 한눈에 보기</h4>
+<pre>                        [ 실시간 영상 스트림 (WebRTC / RTSP) ]
+                                       │  1 Hz 샘플링 (초당 1프레임)
+                                       ▼
+        ┌──────────────────── 실시간 루프 (절대 안 멈춤) ────────────────────┐
+        │   매 초 관찰 ──▶  계층적 기억 조회/갱신                              │
+        │                    ├─ 단기: 최근 100초 원본 토큰 (T_s=100)          │
+        │                    ├─ 중기: 요약 5개 (M=5)                          │
+        │                    └─ 장기: 블록 15개 (L=15)   → 총 ~2시간          │
+        │                    (오래될수록 더 압축 · prefix caching으로 재사용)  │
+        │              매 초 결정 (학습된 per-second)                          │
+        │              ├─ &lt;/silence&gt;  : 계속 관찰                             │
+        │              ├─ &lt;/response&gt; : 즉시 텍스트 응답 ──▶ (ASR/TTS) 사용자 │
+        │              └─ &lt;/delegate&gt; : 무거운 작업 → 백그라운드로 위임 ──┐    │
+        └──────────────────────────────────────────────────────────────┼────┘
+                                                                         │ 텍스트 프로토콜
+                                                                         ▼ (model-agnostic)
+                        ┌──────────── 비동기 루프 (백그라운드) ────────────┐
+                        │   백그라운드 모델이 무거운 하위 작업 처리          │
+                        │   (타임아웃 · 취소 관리)                          │
+                        │            완료 시 결과 ──▶ 메인 대화로 병합(merge)│
+                        └──────────────────────────────────────────────────┘
+                                                                         │
+                                                                         ▼
+                                                            사용자에게 최종 결과 전달</pre>
+
+<h4>자주 하는 오해 (FAQ)</h4>
+<p><strong>Q1. 계층적 기억은 오래된 정보를 "버리는" 것 아닌가요?</strong> 아니다. 버리는 게 아니라 더 세게 압축해서 아래층으로 내려보낸다. 약 2시간 범위 안에서는 흐릿하게라도 계속 참조 가능.</p>
+<p><strong>Q2. 왜 컨텍스트 윈도우를 크게 키우지 않나요?</strong> 원본을 다 담으면 매 초 처리 비용이 시간에 비례해 폭증한다. 계층적 압축은 비용을 거의 일정하게 눌러 2시간이 지나도 서브초 지연을 유지.</p>
+<p><strong>Q3. <code>&lt;/delegate&gt;</code>와 <code>&lt;/response&gt;</code>의 차이는 시간이 오래 걸리냐 아니냐인가요?</strong> 대체로 그렇다. 즉시 답하면 응답, 실시간 감시를 방해할 작업이면 위임.</p>
+<p><strong>Q4. 위임하면 사용자는 답을 못 받나요?</strong> 받는다. 완료되면 메인 대화로 병합되어 전달. 위임은 "포기"가 아니라 "나중에, 실시간을 지키면서 전달".</p>
+<p><strong>Q5. 백그라운드 모델은 반드시 같은 JoyAI 모델이어야 하나요?</strong> 아니다. 모델-무관 텍스트 프로토콜로만 소통하므로 다른 모델을 꽂아도 된다.</p>
+<p><strong>Q6. 이 수치(T_s=100, M=5, L=15)는 물리 법칙인가요?</strong> 아니다. 논문이 채택한 하이퍼파라미터이며 다른 배포에서는 조정될 수 있다.</p>
+</div>
+
+<blockquote>
+<strong>출처 정합성</strong>: 본 해설의 모든 수치·태그·가중치·데이터 구성·사례는 논문 분석에 근거합니다. "비유"(축구 중계 감독, 응급실 간호사, 식당 홀 매니저)와 "토이 예시"(낙상·보안 카메라·가게 CCTV·영상통화)는 원문에 없는 직관적 이해를 돕기 위한 창작 예시입니다.
+</blockquote>
+
+<hr>
+
+<!-- ================= SECTION 3: CODE ================= -->
+<h2 id="code">3. 구현 코드 분석 (Code)</h2>
+<blockquote>
+공개 구현을 세 하위시스템으로 나누어 분석 후 병합. <strong>Part 0</strong> — AdaCodec 시각 코덱 + 베이스 VLM. <strong>Part 1</strong> — per-second 결정 루프 + 학습 데이터/프레임워크. <strong>Part 2</strong> — 배포 가능한 종단 서빙 스택.
+</blockquote>
+<ul>
+  <li><strong>저장소</strong>: <a href="https://github.com/jd-opensource/JoyAI-VL-Interaction">github.com/jd-opensource/JoyAI-VL-Interaction</a> (공식 — JD.com, CC BY 4.0 / 코드 Apache-2.0). 분석 시점 최신 커밋 트리 <code>9d07596</code>.</li>
+  <li><strong>언어/프레임워크</strong>: Python 3.12+ / vLLM(OpenAI-호환 서빙, prefix caching) / aiohttp / aiortc(WebRTC) / Pillow / openai SDK / FastAPI+codex CLI(백그라운드 위임). 학습은 외부 LLaMA-Factory(SFT) + EasyVideoR1(RL/GRPO).</li>
+  <li><strong>실행 진입점</strong>: 전체 스택 <code>services/scripts/run.sh</code> (minimal|all) → <code>https://127.0.0.1:8099</code>; 베이스 VLM <code>services/webinfer/scripts/start_model.sh</code> (:7060); 어댑터 <code>services/webinfer/live_adapter.py</code> (:8070); 학습 데이터 <code>datasets/convert_data.py</code>.</li>
+</ul>
+
+<div class="warn" id="c-adacodec">
+<h3>핵심 발견 — AdaCodec은 이 릴리스에 미구현 (로드맵 항목)</h3>
+<p>논문(§4)은 AdaCodec을 예측적 코덱으로 설명하지만, <strong>공개된 코드에는 P-토큰·참조프레임·모션/잔차 인코더가 존재하지 않습니다.</strong> 저장소 전체 검색 시 README 로드맵의 미체크 항목 한 줄만 나옵니다:</p>
+<pre>README.md:188
+- [ ] **Codec version** — model variant with the predictive video codec (AdaCodec)
+      for lower token cost over long streams</pre>
+<p>따라서 실제로 코드로 존재하는 것은: (1) <strong>베이스 VLM 자체</strong> — <code>JoyAI-VL-8B</code> 위 학습된 <code>JoyAI-VL-Interaction-Preview</code>를 표준 vLLM으로 서빙. (2) <strong>AdaCodec을 대체하는 배포용 토큰-예산 관리</strong> — 코덱 대신 (a) 1 Hz 프레임 샘플링, (b) <code>max_pixels</code> 공간 다운스케일, (c) 청크/요약 계층 메모리, (d) vLLM prefix caching으로 토큰 폭발을 억제. 즉 논문 AdaCodec의 <em>목표</em>(장시간 토큰 예산 유지)를 코덱이 아닌 <strong>시스템 레벨 장치</strong>로 달성.</p>
+</div>
+
+<div class="card" id="c-map">
+<h3>통합 논문 ↔ 코드 매핑 표</h3>
+<table>
+  <thead><tr><th>#</th><th>논문 개념</th><th>코드 위치</th><th>설명</th><th>Part</th></tr></thead>
+  <tbody>
+    <tr><td>1</td><td>베이스: JoyAI-VL 1.0 (Qwen3-8B + Qwen3-VL ViT), 8B</td><td><code>start_model.sh</code> (<code>MODEL_PATH=…/JoyAI-VL-Interaction-Preview</code>)</td><td>학습된 8B 가중치를 vLLM api_server로 서빙. 저장소에 별도 ViT 정의 없음(모델 리포 내재, 추정).</td><td>P0</td></tr>
+    <tr><td>2</td><td>vLLM 네이티브 서빙 + prefix caching</td><td><code>start_model.sh</code> (<code>--enable-prefix-caching --enable-chunked-prefill</code>, <code>--max-model-len 131072</code>)</td><td>메인 8B VLM을 표준 vLLM OpenAI API :7060 서빙. 2시간+ 스트림 종단 지연 억제.</td><td>P0·P2</td></tr>
+    <tr><td>3</td><td>매 타임스텝 3지선다 <code>&lt;/silence&gt;/&lt;/response&gt;/&lt;/delegate&gt;</code></td><td><code>live_adapter.py:100</code> <code>DEFAULT_SYSTEM_PROMPT_EN</code>; <code>normalize_model_output()</code></td><td>시스템 프롬프트가 3개 결정 토큰 강제. 위임은 코드상 <code>&lt;/delegation&gt;</code>.</td><td>P1·P2</td></tr>
+    <tr><td>4</td><td>1 Hz per-second 관찰</td><td><code>video_processor.py:59</code> <code>process_interval_seconds=1.0</code>; <code>live_adapter.py:498</code> <code>frame_seconds=1.0</code></td><td>초당 1프레임 샘플링·전송. 프레임 인덱스×frame_seconds로 시간범위 라벨.</td><td>P0·P1·P2</td></tr>
+    <tr><td>5</td><td>실시간 루프(WebRTC/RTSP 수신, 지연 드롭)</td><td><code>server.py:offer()</code> + <code>video_processor.py:VideoProcessorTrack.recv()</code></td><td>aiortc로 웹캠/RTSP 구독. 1Hz 게이트 + <code>max_frame_latency</code> 초과 드롭.</td><td>P2</td></tr>
+    <tr><td>6</td><td>AdaCodec: 장면 복잡도 비례 토큰 절감</td><td><strong>미구현</strong>. 대체: <code>max_pixels=262144</code> + <code>_resize_image_if_needed</code>, <code>chunk=200</code>, <code>--enable-prefix-caching</code></td><td>코덱 대신 다운스케일·메모리 압축·prefix 캐시. P-토큰/참조프레임 없음.</td><td>P0</td></tr>
+    <tr><td>7</td><td>예측 프레임 압축 인코딩(모션/잔차)</td><td><strong>미구현</strong>. <code>vlm_service.py:158</code> <code>image.save(..., format="JPEG")</code></td><td>프레임 간 예측·잔차 없음. 각 프레임 풀 JPEG → base64.</td><td>P0</td></tr>
+    <tr><td>8</td><td>결정 토큰을 출력에 보존</td><td><code>live_adapter.py:1599</code> <code>skip_special_tokens=False</code></td><td><code>&lt;/silence&gt;</code> 등 특수 토큰이 디코딩에서 잘리지 않도록.</td><td>P0</td></tr>
+    <tr><td>9</td><td>"질의 없으면 능동적 침묵"</td><td><code>FORCE_SILENCE_BEFORE_QUERY=True</code></td><td>질문 부재 시 main model 미호출, 어댑터가 즉시 <code>&lt;/silence&gt;</code>.</td><td>P1</td></tr>
+    <tr><td>10</td><td>계층적 장기 기억(T_s=100/M=5/L=15)</td><td><code>_flush_chunk()/_compress_mid_terms()</code> + <code>memory_summarizer.py</code></td><td>청크 경계 중기 요약, N청크마다 장기 압축. 논문 상수는 설정값으로 파라미터화(추정).</td><td>P1·P2</td></tr>
+    <tr><td>11</td><td>백그라운드 위임(<code>&lt;/delegate&gt;</code>)</td><td><code>background_model.py:parse_delegation()/_run_delegation_task()</code></td><td><code>&lt;delegation&gt;</code>/<code>&lt;|background_call|&gt;</code> 감지 → 비동기 실행, 즉시 플레이스홀더 반환.</td><td>P2</td></tr>
+    <tr><td>12</td><td>비동기 루프 + 모델-무관 프로토콜 + 타임아웃/취소/병합</td><td><code>background-agent/codex_api/main.py</code> <code>POST /v1/solve</code></td><td>codex CLI 서브프로세스, <code>asyncio.wait_for(timeout=600)</code>. status ∈ {completed,failed,timeout}.</td><td>P2</td></tr>
+    <tr><td>13</td><td>결과 병합(merge)</td><td><code>background_model.py</code> → <code>server.py:send_to_session()</code></td><td>완료 결과를 세션 WebSocket으로 통지, 메인 대화 병합.</td><td>P2</td></tr>
+    <tr><td>14</td><td>4M+ 시간정렬 데이터, 침묵 일급 라벨</td><td><code>datasets/convert_data.py:convert_sample()</code></td><td>초마다 user/assistant 쌍 생성 — 침묵이 정식 정답 문자열로 존재.</td><td>P1</td></tr>
+    <tr><td>15</td><td>가중 CE 손실 (1.5/1/0.4)</td><td><strong>(저장소 밖)</strong> LLaMA-Factory 설정 — convert_data는 라벨만, 가중치 미적용</td><td>데이터는 평문 라벨만 방출. 가중치는 학습 프레임워크 단계에서 부여.</td><td>P1</td></tr>
+    <tr><td>16</td><td>RL 후처리 (GRPO, answer-centered window)</td><td><strong>(저장소 밖)</strong> EasyVideoR1</td><td>README가 RL 프레임워크로 명시.</td><td>P1</td></tr>
+    <tr><td>17</td><td>플러그형 ASR/TTS</td><td><code>server.py:setup_asr_routes()/setup_tts_routes()</code></td><td>실시간 루프와 독립적 음성 입출력 라우트.</td><td>P2</td></tr>
+    <tr><td>18</td><td>시각화 UI</td><td><code>webui/…/static/index.html</code>, <code>server.py:index()</code></td><td>브라우저 프런트엔드에서 스트림·응답·메트릭 표시.</td><td>P2</td></tr>
+  </tbody>
+</table>
+<blockquote>매핑 주의: 논문 태그 <code>&lt;/delegate&gt;</code>는 코드상 <code>&lt;/delegation&gt;</code>/<code>&lt;|background_call|&gt;</code>, 메모리 상수 T_s=100/M=5/L=15는 코드에서 <code>chunk</code>·<code>compress_every_n_chunks</code>·<code>key_frames_per_chunk</code> 등 설정값으로 일반화됨(정확한 기본값 확인 필요 — 추정).</blockquote>
+</div>
+
+<div class="card" id="c-p0">
+<h3>Part 0 — AdaCodec 시각 코덱 + 비전-언어 베이스 모델</h3>
+<p>"영상 프레임이 어떻게 토큰으로 인코딩되어 베이스 VLM에 들어가고, 그 모델이 어떻게 서빙되는가"에 집중.</p>
+
+<h4>데이터 흐름 추적</h4>
+<pre>[WebRTC/RTSP 영상 스트림]
+     │  aiortc VideoStreamTrack
+     ▼
+video_processor.py: VideoProcessorTrack.recv()
+     │  process_interval_seconds=1.0 → 1초에 1프레임만 통과
+     │  frame.to_ndarray("bgr24") → PIL.Image (BGR→RGB)
+     ▼
+vlm_service.py: VLMService.analyze_image()
+     │  PIL → JPEG(BytesIO) → base64 → "data:image/jpeg;base64,…"  ← 프레임 "인코딩" 실체
+     ▼  (OpenAI-호환 HTTP, x-streaming-session 헤더로 세션 고정)
+webinfer/live_adapter.py: StreamingInferAdapter._handle_chat_payload()
+     │  _time_range_for_frame(i) = "i.0 seconds"  → 시간 마커 삽입
+     │  프레임을 current_chunk에 누적(chunk=200), 메모리 프리픽스 조립
+     │  _resize_image_if_needed(max_pixels=262144)로 공간 토큰 상한
+     ▼
+_call_main_model() → vLLM(JoyAI-VL-Interaction-Preview, 포트 7060)
+     │  ViT가 각 프레임을 시각 토큰으로 변환(모델 내부) + LM이 다음 토큰 생성
+     ▼
+raw_text = "&lt;/silence&gt;" | "&lt;/response&gt; …" | "&lt;/response&gt; … &lt;/delegation&gt; &lt;question&gt;"</pre>
+<p>핵심: "AdaCodec 시각 인코딩"의 실제 코드 경로는 <code>frame.to_ndarray → PIL → JPEG → base64 data URL</code>이며, 시각 토큰화(ViT)는 vLLM에 로드된 모델 가중치 내부에서 일어납니다. 저장소 코드는 코덱/토큰 압축 로직을 직접 구현하지 않습니다.</p>
+
+<h4>핵심 코드 발췌</h4>
+<p><strong>(a) 베이스 VLM 기동 — <code>services/webinfer/scripts/start_model.sh</code></strong></p>
+<pre>MODEL_PATH="${MODEL_PATH:-/tmp/models/JoyAI-VL-Interaction-Preview}"
+SERVED_MODEL_NAME="${SERVED_MODEL_NAME:-JoyAI-VL-Interaction-Preview}"
+MAX_MODEL_LEN="${MAX_MODEL_LEN:-131072}"                      # 장시간 스트림용 128K 컨텍스트
+CUDA_VISIBLE_DEVICES="${MAIN_GPU}" python -m vllm.entrypoints.openai.api_server \
+    --model "${MODEL_PATH}" --served-model-name "${SERVED_MODEL_NAME}" \
+    --port 7060 --gpu-memory-utilization 0.9 \
+    --max-model-len "${MAX_MODEL_LEN}" \
+    --enable-prefix-caching --enable-chunked-prefill          # 논문의 prefix caching 주장에 대응</pre>
+<p><strong>(b) 프레임 "인코딩" 실체 — <code>vlm_service.py:analyze_image</code></strong></p>
+<pre>img_byte_arr = io.BytesIO()
+image.save(img_byte_arr, format="JPEG")                       # 예측·잔차 없이 매 프레임 풀 JPEG
+img_base64 = base64.b64encode(img_byte_arr.getvalue()).decode("utf-8")
+image_url = f"data:image/jpeg;base64,{img_base64}"
+content.append({"type": "image_url", "image_url": {"url": image_url}})</pre>
+<p>AdaCodec의 "P-토큰"이 없으므로 모든 프레임이 참조 프레임처럼 온전히 인코딩됩니다.</p>
+<p><strong>(c) 공간 토큰 상한 — <code>live_adapter.py</code></strong></p>
+<pre>max_pixels: int = 262144            # ≈512×512, 프레임당 시각 토큰 수 상한
+def _resize_image_if_needed(image, max_pixels):
+    if max_pixels <= 0 or width*height <= max_pixels: return None
+    scale = (max_pixels/(width*height))**0.5
+    return image.resize((int(width*scale), int(height*scale)), Image.LANCZOS)</pre>
+<p><strong>(e) 결정 포맷 계약 — <code>DEFAULT_SYSTEM_PROMPT_EN</code></strong></p>
+<pre>At every inference step you MUST choose exactly one of the following three actions:
+&lt;/silence&gt;                              # 침묵
+&lt;/response&gt; Your reply here.            # 응답
+&lt;/response&gt; Brief note… &lt;/delegation&gt; &lt;the question&gt;   # 위임</pre>
+<p>논문의 <code>&lt;/delegate&gt;</code>가 코드에서는 <code>&lt;/delegation&gt;</code>으로 실현(위임은 <code>&lt;/response&gt;</code> 뒤에 <code>&lt;/delegation&gt;</code> 태그를 붙이는 2단 포맷).</p>
+
+<h4>최소 재현 가능 여부</h4>
+<p><strong>부분 가능.</strong> 서빙·인코딩 파이프라인은 재현 가능(download-models → start_model.sh :7060 → live_adapter.py :8070 → OpenAI-호환 요청). <strong>불가능한 부분</strong>: AdaCodec 코덱 자체(코드 미공개), ViT 토큰화·모델 아키텍처 정의(저장소에 없음). GPU·8B 가중치 없으면 더미 vLLM 목(mock)으로 메시지 조립·resize·skip_special_tokens 경로만 스모크 테스트 권장.</p>
+</div>
+
+<div class="card" id="c-p1">
+<h3>Part 1 — 실시간 per-second 의사결정 루프 + 학습 파이프라인</h3>
+<blockquote>저장소에는 <strong>가중 CE 손실을 직접 구현한 학습 코드가 포함되어 있지 않습니다</strong>. SFT는 LLaMA-Factory, RL은 EasyVideoR1이라는 외부 프레임워크에 위임되며, 저장소가 제공하는 학습 측 산출물은 (a) <code>convert_data.py</code>의 per-second 포맷 변환, (b) HuggingFace <code>jdopensource/JoyAI-VL-Interaction</code> 데이터셋입니다.</blockquote>
+
+<h4>데이터 흐름 — 학습 시 (시간정렬 → per-second 지도 데이터)</h4>
+<pre>원시 주석 (video + fps + question_map{sec→질문} + response_map{sec→정답발화})
+        │
+        ▼  datasets/convert_data.py: convert_sample(sample, frame_dir, ...)
+초 s = 0 … n_seconds-1 마다:
+   user   := (질문 있으면 질문) + "&lt;{s}.0 seconds&gt;" + "&lt;image&gt;" × frames_per_sec
+   assistant := response_map[s] 있으면 "&lt;/response&gt; {발화}"  else "&lt;/silence&gt;"
+        │
+        ▼
+{ messages:[…], images:[frame_paths], video_name, task_type, source }  (JSON 배열)
+        └► LLaMA-Factory(SFT, 가중 CE) → EasyVideoR1(GRPO) 로 학습  (외부 프레임워크)</pre>
+
+<h4>per-second 지도 데이터 생성 — <code>datasets/convert_data.py</code></h4>
+<pre>frames_per_sec = max(int(fps), 1)
+n_seconds = max(int(effective_duration), 1)
+messages = []
+for sec in range(n_seconds):
+    parts = []
+    if sec in question_map:
+        parts.append(question_map[sec])
+    parts.append(f"&lt;{sec:.1f} seconds&gt;")
+    for _ in range(frames_per_sec):
+        parts.append("&lt;image&gt;")
+    messages.append({"role": "user", "content": "\n".join(parts)})
+    if sec in response_map:
+        messages.append({"role": "assistant",
+                         "content": f"&lt;/response&gt; {response_map[sec]}"})
+    else:
+        messages.append({"role": "assistant", "content": "&lt;/silence&gt;"})</pre>
+<p>논문의 "침묵을 라벨 부재가 아닌 일급 라벨로"가 정확히 여기서 실현 — 응답이 없는 초는 빈칸이 아니라 <code>{"role":"assistant","content":"&lt;/silence&gt;"}</code>라는 정식 턴으로 채워집니다. 시간마커가 타이밍 감독을, <code>&lt;/response&gt; {text}</code>가 내용 감독을 담당해 "2축 검증"과 대응.</p>
+<blockquote><strong>정직한 한계</strong>: 이 스크립트는 <code>&lt;/silence&gt;</code>를 평문 그대로 방출할 뿐 <code>w_silence_first=1 / w_silence_repeated=0.4 / w_response=1.5</code>의 가중치를 적용하지 않습니다. 가중 CE는 데이터 포맷이 아니라 학습 단계(LLaMA-Factory)에서 부여됩니다.</blockquote>
+
+<h4>"질의 전 강제 침묵" 단락 경로</h4>
+<pre>FORCE_SILENCE_BEFORE_QUERY = True (default)
+→ "without a user question, the adapter returns &lt;/silence&gt; directly and does not call the main model."</pre>
+<p>질의 없는 초는 main model을 아예 호출하지 않고 어댑터가 <code>&lt;/silence&gt;</code>로 즉답 → 서브초 지연·GPU 절약. 학습에서 반복 침묵 가중치를 0.4로 낮춘 것의 추론판 대응.</p>
+
+<h4>핵심 환경변수 (webinfer README 기준)</h4>
+<table>
+  <thead><tr><th>변수</th><th>기본값</th><th>의미</th></tr></thead>
+  <tbody>
+    <tr><td><code>ADAPTER_PORT</code></td><td>8070</td><td>어댑터 HTTP 포트</td></tr>
+    <tr><td><code>FRAME_SECONDS</code></td><td>1.0</td><td>1 Hz 샘플링(타임스텝=1초)</td></tr>
+    <tr><td><code>FORCE_SILENCE_BEFORE_QUERY</code></td><td>true</td><td>질의 전 강제 침묵 단락</td></tr>
+    <tr><td><code>CHUNK</code></td><td>100(스크립트)/200(코드)</td><td>요약 트리거 프레임 수</td></tr>
+    <tr><td><code>COMPRESS_EVERY_N_CHUNKS</code></td><td>5</td><td>장기 압축 트리거(=논문 M=5)</td></tr>
+    <tr><td><code>MAIN_MAX_TOKENS</code></td><td>256</td><td>한 문장 발화 상한</td></tr>
+    <tr><td><code>SUMMARIZER_MAX_PIXELS</code></td><td>262144</td><td>프레임 해상도 상한</td></tr>
+  </tbody>
+</table>
+<p><strong>정직성 메모</strong>: <code>&lt;/delegate&gt;</code> 실시간 라우팅은 코드가 프롬프트 템플릿에만 정의, 어댑터 능동 파싱 미확인 → 위임 실행은 <code>services/background-agent</code>로 추정. CHUNK/ASYNC_SUMMARY_LEAD_FRAMES 기본값이 코드 dataclass와 스크립트에서 상이. 학습 측 가중치 적용부는 저장소 외부(LLaMA-Factory)라 경로 미확인.</p>
+</div>
+
+<div class="card" id="c-p2">
+<h3>Part 2 — 배포 가능한 종단 서빙 스택</h3>
+<p>① vLLM 네이티브 서빙, ② WebRTC/WebSocket 실시간 루프, ③ 계층적 기억(요약) 파이프라인, ④ 백그라운드 위임, ⑤ 시각화 UI.</p>
+
+<h4>포트 맵 (run.sh 헬스체크 기준)</h4>
+<table>
+  <thead><tr><th>컴포넌트</th><th>포트</th><th>헬스 URL</th></tr></thead>
+  <tbody>
+    <tr><td>Webinfer 메인 VLM (vLLM)</td><td>7060</td><td><code>/v1/models</code></td></tr>
+    <tr><td>Webinfer 요약 VLM (vLLM)</td><td>8065</td><td><code>/v1/models</code></td></tr>
+    <tr><td>Webinfer 어댑터(live_adapter)</td><td>8070</td><td><code>/health</code></td></tr>
+    <tr><td>WebUI (aiohttp, WebRTC/WS)</td><td>8099</td><td><code>https://127.0.0.1:8099</code></td></tr>
+    <tr><td>Background-agent (FastAPI)</td><td>8079</td><td><code>/health</code></td></tr>
+    <tr><td>ASR vLLM / 어댑터</td><td>8993 / 8994</td><td>—</td></tr>
+    <tr><td>TTS vLLM-Omni / 어댑터</td><td>8991 / 8992</td><td>—</td></tr>
+  </tbody>
+</table>
+
+<h4>vLLM 네이티브 서빙 — <code>webinfer/scripts/start_model.sh</code></h4>
+<pre>CUDA_VISIBLE_DEVICES="${MAIN_GPU}" "${PYTHON_BIN}" -m vllm.entrypoints.openai.api_server \
+    --model "${MODEL_PATH}" \
+    --served-model-name "${SERVED_MODEL_NAME}" \        # 기본 JoyAI-VL-Interaction-Preview
+    --port "${MAIN_MODEL_PORT}" \                        # 기본 7060
+    --gpu-memory-utilization "${MAIN_GPU_MEMORY_UTILIZATION}" \  # 0.9
+    --max-model-len "${MAX_MODEL_LEN}" \                 # 131072
+    --tensor-parallel-size "${TENSOR_PARALLEL_SIZE}" \
+    --enable-prefix-caching \                            # ★ 논문의 서브초 지연 핵심
+    --enable-chunked-prefill</pre>
+<p><code>--enable-prefix-caching</code>은 매초 재계산 없이 과거 컨텍스트 KV를 재사용해 2시간+ 스트림에서도 종단 지연을 억제. 요약 모델은 별도 vLLM 인스턴스(:8065, <code>Qwen3-VL-4B-Instruct</code>)로 분리 서빙.</p>
+
+<h4>계층적 기억 — <code>live_adapter.py</code> + <code>memory_summarizer.py</code></h4>
+<ul>
+  <li><strong>청크(중기 요약) 트리거</strong>: <code>turn_count >= config.chunk</code>이면 <code>_flush_chunk()</code> → <code>summarizer.generate_detailed_summary()</code>. 결과는 <code>state.mid_term_summaries</code>에 버퍼.</li>
+  <li><strong>장기 압축</strong>: <code>len(mid_term_summaries) >= compress_every_n_chunks</code>이면 <code>_compress_mid_terms()</code> → <code>batch_compress_to_longterm()</code> → <code>long_term_memory</code> 갱신.</li>
+  <li><code>generate_detailed_summary()</code>: 청크당 최대 <code>key_frames_per_chunk</code>(기본 8) 프레임을 뽑아 base64 멀티모달 요약 VLM 호출. 비가역 상태 변화·중간 결과·읽을 수 있는 텍스트/수치·최초 등장 이벤트·공간 관계 우선 보존(<code>mid_term_max_tokens=5000</code>).</li>
+  <li><code>batch_compress_to_longterm()</code>: 여러 중기 요약을 텍스트 전용 압축, <code>&lt;merged_range&gt;</code> 타임스탬프 부착(<code>long_term_max_tokens=1200</code>).</li>
+</ul>
+<p>논문의 "단기(원본 토큰)→중기(요약)→장기(블록)" 3층이 (원본 프레임) → 중기=멀티모달 요약 → 장기=텍스트 압축 블록으로 구현. 논문 상수 T_s=100/M=5/L=15는 <code>chunk</code>/<code>compress_every_n_chunks</code>/버퍼 상한으로 파라미터화(정확 기본값은 추정).</p>
+
+<h4>실시간 루프 — <code>server.py:offer()</code> (WebRTC 협상)</h4>
+<pre>async def offer(request):
+    params = await request.json()
+    offer_sdp = RTCSessionDescription(sdp=params["sdp"], type=params["type"])
+    session = get_or_create_session(params.get("session_id", "default"))
+    pc = RTCPeerConnection(configuration=RTCConfiguration(iceServers=[...stun...]))
+    @pc.on("track")
+    def on_track(track):
+        if track.kind == "video":
+            processor_track = VideoProcessorTrack(
+                relay.subscribe(track), session["vlm_service"],
+                text_callback=session_callback, background_service=background_service)
+            pc.addTrack(processor_track)</pre>
+<p>RTSP 소스는 <code>RTSPVideoTrack(rtsp_url)</code>를 동일한 <code>VideoProcessorTrack</code>으로 연결 → 웹캠/IP카메라 동일 처리 경로. 1Hz 게이트(<code>process_interval_seconds=1.0</code>)와 지연 초과 프레임 드롭(최대 100프레임 안전루프)으로 "절대 멈추지 않는 실시간 루프" 구현.</p>
+
+<h4>백그라운드 위임 — <code>background_model.py</code> + <code>codex_api/main.py</code></h4>
+<ul>
+  <li>감지: <code>parse_delegation()</code>이 <code>&lt;delegation&gt;</code> 태그/<code>&lt;|background_call|&gt;</code> 마커에서 질문 추출. <code>handle_foreground_response()</code>가 태스크 ID 발급, 현재 프레임 스냅샷과 함께 <code>asyncio.create_task()</code> 기동, 사용자엔 즉시 플레이스홀더 반환(실시간성 유지).</li>
+  <li>실행: <code>_run_delegation_task()</code>가 프레임+질문을 <code>POST /v1/solve</code>로 전송, <code>asyncio.wait_for(..., timeout_seconds=600)</code>로 감쌈.</li>
+</ul>
+<pre>class SolveResponse(BaseModel):
+    status: Literal["completed","failed","timeout"]
+    text: str; thread_id: str | None; usage: dict | None
+    duration_ms: float; events_digest: dict; error: str | None</pre>
+<p>논문의 "고정·모델-무관 텍스트 프로토콜 배경 브릿지(타임아웃·취소·병합)"가 정확히 대응. <code>/v1/solve</code>의 텍스트 in/out 계약 덕에 백그라운드 실행기를 codex 외 다른 에이전트로 교체 가능(model-agnostic). <code>status ∈ {completed,failed,timeout}</code>가 타임아웃 처리를, 즉시 플레이스홀더+완료 후 <code>notify_session_json</code>이 병합(merge)을 구현.</p>
+
+<h4>최소 재현 가능 여부</h4>
+<p><strong>가능(권장 minimal 모드)</strong>: (1) <code>install.sh</code> + <code>download-models.sh --all</code>, (2) <code>generate_cert.sh</code>로 TLS 인증서, (3) <code>run.sh minimal</code> → webinfer(:7060 + :8065 + :8070) 기동·헬스체크 후 WebUI, (4) <code>https://127.0.0.1:8099</code> 접속 웹캠 허용. 위임까지 포함하려면 <code>run.sh all</code> (codex CLI + CODEX_HOME 필요). GPU 없는 축소 재현은 <code>MODEL_PATH</code>를 소형 OpenAI-호환 VLM으로 교체하면 실시간 루프/WebRTC/요약/위임 배선 검증 가능.</p>
+</div>
+
+<hr>
+<p class="muted">본 리포트는 <code>01_analysis.md</code>, <code>03_detail.md</code>, <code>04_code.md</code>, <code>design.css</code>를 병합해 생성한 자급식(self-contained) HTML입니다. 저장 경로: <code>./output/joyaivl_2606.14777/report.html</code></p>
+
+</div>
+
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  renderMathInElement(document.body, {
+    delimiters: [
+      {left: "$$", right: "$$", display: true},
+      {left: "$", right: "$", display: false}
+    ],
+    throwOnError: false
+  });
+});
+</script>
+</body>
+</html>
