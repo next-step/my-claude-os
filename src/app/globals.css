@@ -294,6 +294,10 @@ a {
   background: var(--brand);
   color: #fff;
 }
+.segmented__btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
 .segmented--sm .segmented__btn {
   padding: 0.25rem 0.6rem;
   font-size: 0.78rem;
@@ -951,6 +955,34 @@ a {
   gap: 0.7rem;
   flex-wrap: wrap;
   align-items: center;
+}
+
+/* ---- 토스트(북마크 실패 롤백 알림) ---- */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 1.5rem;
+  transform: translateX(-50%);
+  z-index: 100;
+  background: #1a1d21;
+  color: #fff;
+  padding: 0.7rem 1.1rem;
+  border-radius: 999px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+  max-width: 90vw;
+  animation: toastIn 0.18s ease;
+}
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 8px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
 }
 
 /* ---- 반응형 ---- */

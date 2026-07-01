@@ -1,18 +1,17 @@
 "use client";
 
 // ============================================================================
-// 북마크 클라이언트 스토어 (localStorage 기반) — 실 API 교체 지점(SEAM)
+// 북마크 스토어 — 실 DB API 연결 (낙관적 업데이트 + 실패 시 롤백)
 // ----------------------------------------------------------------------------
-// 북마크 쓰기 API(POST/PATCH/DELETE)가 아직 없어서, M1 은 이 컨텍스트가 북마크
-// 상태의 단일 진실 출처다. 낙관적 업데이트를 위해 localStorage 에 즉시 반영한다.
+// 진실의 출처는 서버 DB. 마운트 시 GET /api/bookmarks 로 전체 북마크를 불러와
+// {jobId -> {bookmarkId, status}} 맵을 만든다. 이후 화면(피드/상세/저장)은
+// 이 맵으로 별표·상태를 그린다.
 //
-// [최초 시딩] 첫 방문이면 서버 응답의 JobDTO.bookmark 필드로 스토어를 시드한다
-//   (seedFrom). 한 번 시드하면 그 뒤로는 로컬 스토어가 진실 → 사용자가 삭제한
-//   북마크가 mock 필드 때문에 되살아나지 않는다.
-//
-// [실 API 전환] toggle/setStatus/remove 의 본문을 src/lib/api.ts 의
-//   createBookmark/updateBookmark/deleteBookmark 호출로 바꾸면 된다.
-//   화면(useBookmarks 사용부)은 수정 불필요.
+// 모든 쓰기는 낙관적으로 화면을 먼저 바꾸고 서버에 반영한다:
+//   - 성공: 서버가 준 실제 값(bookmarkId 등)으로 확정
+//   - 실패: 직전 상태로 롤백 + 토스트로 알림
+// 서버 호출은 src/lib/api.ts 의 createBookmark/updateBookmark/deleteBookmark/
+// fetchBookmarks 로 일원화(데이터 접근 단일 창구).
 // ============================================================================
 
 import {
@@ -24,7 +23,13 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import type { BookmarkStatus, JobDTO } from "@/types/contract";
+import type { BookmarkStatus } from "@/types/contract";
+import {
+  createBookmark,
+  deleteBookmark,
+  fetchBookmarks,
+  updateBookmark,
+} from "@/lib/api";
 
 export interface BookmarkEntry {
   bookmarkId: string;
@@ -34,22 +39,19 @@ export interface BookmarkEntry {
 /** key = jobId */
 type BookmarkMap = Record<string, BookmarkEntry>;
 
-const STORAGE_KEY = "chaeyong.bookmarks.v1";
-const SEED_KEY = "chaeyong.bookmarks.seeded.v1";
-
 interface BookmarkContextValue {
-  /** localStorage 로드 완료 여부(SSR 하이드레이션 깜빡임 방지용) */
+  /** 초기 북마크 로드 완료 여부(로드 전 별표 깜빡임 방지) */
   ready: boolean;
   map: BookmarkMap;
   count: number;
   isBookmarked: (jobId: string) => boolean;
   entry: (jobId: string) => BookmarkEntry | null;
-  /** 북마크 토글: 없으면 PLANNED 로 추가, 있으면 제거 */
+  /** 처리 중(중복 클릭 방지 → 버튼 disable) */
+  isPending: (jobId: string) => boolean;
+  /** 토글: 없으면 생성(POST), 있으면 삭제(DELETE) */
   toggle: (jobId: string) => void;
   setStatus: (jobId: string, status: BookmarkStatus) => void;
   remove: (jobId: string) => void;
-  /** 최초 1회 서버 DTO 로 시드(이미 시드됐으면 무시) */
-  seedFrom: (jobs: JobDTO[]) => void;
 }
 
 const BookmarkContext = createContext<BookmarkContextValue | null>(null);
@@ -57,86 +59,141 @@ const BookmarkContext = createContext<BookmarkContextValue | null>(null);
 export function BookmarkProvider({ children }: { children: ReactNode }) {
   const [map, setMap] = useState<BookmarkMap>({});
   const [ready, setReady] = useState(false);
-  const seededRef = useRef(false);
+  const [pending, setPending] = useState<Record<string, boolean>>({});
+  const [toast, setToast] = useState<string | null>(null);
 
+  // 동기적으로 현재 맵을 읽기 위한 ref(낙관적 롤백에 필요)
+  const mapRef = useRef<BookmarkMap>({});
+  mapRef.current = map;
+
+  // 초기 로드: 서버의 전체 북마크 → 맵
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) setMap(JSON.parse(raw) as BookmarkMap);
-      seededRef.current = localStorage.getItem(SEED_KEY) === "true";
-    } catch {
-      /* localStorage 접근 불가 시 메모리 상태로만 동작 */
-    }
-    setReady(true);
-  }, []);
-
-  /** 상태 갱신 + localStorage 반영을 한 번에 */
-  const write = useCallback(
-    (updater: (prev: BookmarkMap) => BookmarkMap) => {
-      setMap((prev) => {
-        const next = updater(prev);
-        try {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-        } catch {
-          /* noop */
-        }
-        return next;
-      });
-    },
-    []
-  );
-
-  const seedFrom = useCallback(
-    (jobs: JobDTO[]) => {
-      if (seededRef.current) return;
-      seededRef.current = true;
-      try {
-        localStorage.setItem(SEED_KEY, "true");
-      } catch {
-        /* noop */
-      }
-      write((prev) => {
-        const next = { ...prev };
-        for (const j of jobs) {
-          if (j.bookmark && !next[j.id]) {
-            next[j.id] = { ...j.bookmark };
+    let alive = true;
+    fetchBookmarks()
+      .then((res) => {
+        if (!alive) return;
+        const next: BookmarkMap = {};
+        for (const job of res.items) {
+          if (job.bookmark) {
+            next[job.id] = {
+              bookmarkId: job.bookmark.bookmarkId,
+              status: job.bookmark.status,
+            };
           }
         }
-        return next;
-      });
+        setMap(next);
+      })
+      .catch(() => {
+        // 초기 로드 실패해도 앱은 동작(별표만 비어 보임). 조용히 넘어간다.
+      })
+      .finally(() => alive && setReady(true));
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const showError = useCallback((msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 3200);
+  }, []);
+
+  const setPendingFor = useCallback((jobId: string, v: boolean) => {
+    setPending((prev) => {
+      if (v) return { ...prev, [jobId]: true };
+      const next = { ...prev };
+      delete next[jobId];
+      return next;
+    });
+  }, []);
+
+  /** 북마크 생성(낙관적) */
+  const add = useCallback(
+    async (jobId: string) => {
+      setPendingFor(jobId, true);
+      // 낙관적: 임시 엔트리 표시
+      setMap((prev) => ({
+        ...prev,
+        [jobId]: { bookmarkId: `temp_${jobId}`, status: "PLANNED" },
+      }));
+      try {
+        const res = await createBookmark(jobId);
+        setMap((prev) => ({
+          ...prev,
+          [jobId]: { bookmarkId: res.bookmarkId, status: res.status },
+        }));
+      } catch {
+        // 롤백: 임시 엔트리 제거
+        setMap((prev) => {
+          const next = { ...prev };
+          delete next[jobId];
+          return next;
+        });
+        showError("북마크 저장에 실패했어요. 잠시 후 다시 시도해 주세요.");
+      } finally {
+        setPendingFor(jobId, false);
+      }
     },
-    [write]
+    [setPendingFor, showError]
   );
 
-  const toggle = useCallback(
-    (jobId: string) =>
-      write((prev) => {
-        const next = { ...prev };
-        if (next[jobId]) delete next[jobId];
-        else next[jobId] = { bookmarkId: `local_${jobId}`, status: "PLANNED" };
-        return next;
-      }),
-    [write]
-  );
-
-  const setStatus = useCallback(
-    (jobId: string, status: BookmarkStatus) =>
-      write((prev) => {
-        if (!prev[jobId]) return prev;
-        return { ...prev, [jobId]: { ...prev[jobId], status } };
-      }),
-    [write]
-  );
-
+  /** 북마크 삭제(낙관적) */
   const remove = useCallback(
-    (jobId: string) =>
-      write((prev) => {
-        if (!prev[jobId]) return prev;
+    async (jobId: string) => {
+      const existing = mapRef.current[jobId];
+      if (!existing) return;
+      setPendingFor(jobId, true);
+      // 낙관적: 즉시 제거
+      setMap((prev) => {
         const next = { ...prev };
         delete next[jobId];
         return next;
-      }),
-    [write]
+      });
+      try {
+        await deleteBookmark(existing.bookmarkId);
+      } catch {
+        // 롤백: 되살림
+        setMap((prev) => ({ ...prev, [jobId]: existing }));
+        showError("저장 취소에 실패했어요. 잠시 후 다시 시도해 주세요.");
+      } finally {
+        setPendingFor(jobId, false);
+      }
+    },
+    [setPendingFor, showError]
+  );
+
+  const toggle = useCallback(
+    (jobId: string) => {
+      if (mapRef.current[jobId]) void remove(jobId);
+      else void add(jobId);
+    },
+    [add, remove]
+  );
+
+  const setStatus = useCallback(
+    async (jobId: string, status: BookmarkStatus) => {
+      const existing = mapRef.current[jobId];
+      if (!existing || existing.status === status) return;
+      const prevStatus = existing.status;
+      setPendingFor(jobId, true);
+      // 낙관적: 상태 먼저 반영
+      setMap((prev) =>
+        prev[jobId] ? { ...prev, [jobId]: { ...prev[jobId], status } } : prev
+      );
+      try {
+        await updateBookmark(existing.bookmarkId, status);
+      } catch {
+        // 롤백: 이전 상태로
+        setMap((prev) =>
+          prev[jobId]
+            ? { ...prev, [jobId]: { ...prev[jobId], status: prevStatus } }
+            : prev
+        );
+        showError("상태 변경에 실패했어요. 잠시 후 다시 시도해 주세요.");
+      } finally {
+        setPendingFor(jobId, false);
+      }
+    },
+    [setPendingFor, showError]
   );
 
   const value: BookmarkContextValue = {
@@ -145,15 +202,20 @@ export function BookmarkProvider({ children }: { children: ReactNode }) {
     count: Object.keys(map).length,
     isBookmarked: (jobId) => Boolean(map[jobId]),
     entry: (jobId) => map[jobId] ?? null,
+    isPending: (jobId) => Boolean(pending[jobId]),
     toggle,
     setStatus,
-    remove,
-    seedFrom,
+    remove: (jobId) => void remove(jobId),
   };
 
   return (
     <BookmarkContext.Provider value={value}>
       {children}
+      {toast && (
+        <div className="toast" role="alert">
+          {toast}
+        </div>
+      )}
     </BookmarkContext.Provider>
   );
 }

@@ -18,12 +18,16 @@ import type {
   UpdatePreferenceBody,
   JobSort,
   ApiError,
+  BookmarkStatus,
+  BookmarksListResponse,
+  CreateBookmarkResponse,
+  UpdateBookmarkResponse,
 } from "@/types/contract";
 
 /** 피드 필터 상태(화면 ↔ 쿼리 직렬화 사이의 단일 형태) */
 export interface FeedFilters {
-  /** API 는 role 단일값만 지원(12.5). null = 전체 */
-  role: string | null;
+  /** role 다중값(콤마 직렬화, OR 매칭). 빈 배열 = 전체 (OS.md 12.6) */
+  roles: string[];
   locations: string[];
   experiences: string[];
   keyword: string;
@@ -34,7 +38,7 @@ export interface FeedFilters {
 }
 
 export const DEFAULT_FILTERS: FeedFilters = {
-  role: null,
+  roles: [],
   locations: [],
   experiences: [],
   keyword: "",
@@ -75,7 +79,7 @@ async function parse<T>(res: Response): Promise<T> {
 /** FeedFilters → GET /api/jobs 쿼리스트링(12.5/12.6 규약대로 직렬화) */
 export function buildJobsQuery(f: FeedFilters): string {
   const p = new URLSearchParams();
-  if (f.role) p.set("role", f.role);
+  if (f.roles.length) p.set("role", f.roles.join(",")); // 콤마 다중값(OR)
   if (f.locations.length) p.set("location", f.locations.join(","));
   if (f.experiences.length) p.set("experience", f.experiences.join(","));
   if (f.keyword.trim()) p.set("keyword", f.keyword.trim());
@@ -123,26 +127,60 @@ export async function savePreferences(
   return parse<UserPreference>(res);
 }
 
-/**
- * 저장(Saved) 화면용: 마감 포함 전체 공고를 커서로 끝까지 모아온다.
- * GET /api/bookmarks 가 아직 미구현이라, 전체 공고를 가져와 클라이언트 북마크
- * 스토어와 교집합을 취하는 방식(계약대로 마감 공고도 포함 표시).
- * 실 GET /api/bookmarks 가 나오면 이 함수 대신 그 엔드포인트로 교체한다.
- */
-export async function fetchAllJobsIncludingExpired(
+// ---- 북마크 (실 DB API, OS.md 12.5) --------------------------------------
+// 이 네 함수가 북마크 데이터 접근의 단일 창구다. bookmarks.tsx 스토어가
+// 낙관적 업데이트 + 롤백을 얹어 호출한다.
+
+/** GET /api/bookmarks — 저장 목록(마감 포함). status 로 필터 가능. */
+export async function fetchBookmarks(
+  status?: BookmarkStatus,
   signal?: AbortSignal
-): Promise<JobDTO[]> {
-  const all: JobDTO[] = [];
-  let cursor: string | null = null;
-  // 안전장치: 커서가 잘못 돌아 무한루프가 되지 않도록 상한.
-  for (let guard = 0; guard < 50; guard++) {
-    const page: JobsListResponse = await fetchJobs(
-      { ...DEFAULT_FILTERS, includeExpired: true, cursor },
-      signal
-    );
-    all.push(...page.items);
-    if (!page.nextCursor) break;
-    cursor = page.nextCursor;
+): Promise<BookmarksListResponse> {
+  const qs = status ? `?status=${encodeURIComponent(status)}` : "";
+  const res = await fetch(`/api/bookmarks${qs}`, { cache: "no-store", signal });
+  return parse<BookmarksListResponse>(res);
+}
+
+/** POST /api/bookmarks — 생성(idempotent). 응답 status 는 기본 PLANNED. */
+export async function createBookmark(
+  jobId: string
+): Promise<CreateBookmarkResponse> {
+  const res = await fetch(`/api/bookmarks`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ jobId }),
+  });
+  return parse<CreateBookmarkResponse>(res);
+}
+
+/** PATCH /api/bookmarks/:id — 상태 변경. */
+export async function updateBookmark(
+  bookmarkId: string,
+  status: BookmarkStatus
+): Promise<UpdateBookmarkResponse> {
+  const res = await fetch(`/api/bookmarks/${encodeURIComponent(bookmarkId)}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ status }),
+  });
+  return parse<UpdateBookmarkResponse>(res);
+}
+
+/** DELETE /api/bookmarks/:id — 삭제(204, 본문 없음). */
+export async function deleteBookmark(bookmarkId: string): Promise<void> {
+  const res = await fetch(`/api/bookmarks/${encodeURIComponent(bookmarkId)}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) {
+    let message = `삭제에 실패했어요 (${res.status})`;
+    let code = "HTTP_" + res.status;
+    try {
+      const body = (await res.json()) as ApiError;
+      if (body?.error?.message) message = body.error.message;
+      if (body?.error?.code) code = body.error.code;
+    } catch {
+      /* 204 는 본문 없음 → 정상 */
+    }
+    throw new ApiRequestError(message, res.status, code);
   }
-  return all;
 }

@@ -250,7 +250,7 @@ type JobDTO = Job & {
 ### 12.5 API 엔드포인트 (M1)
 | 메서드·경로 | 요청 | 응답 |
 |---|---|---|
-| GET /api/jobs | query: `role, location(다중 가능, 콤마), experience(다중 가능), keyword, sort(deadline\|recent), deadlineWithin(days), includeExpired(기본 false), cursor` | `{ items: JobDTO[], nextCursor: string\|null, totalCount: number, partialHiddenCount: number }` |
+| GET /api/jobs | query: `role(다중 가능, 콤마), location(다중 가능, 콤마), experience(다중 가능), keyword, sort(deadline\|recent), deadlineWithin(days), includeExpired(기본 false), cursor` | `{ items: JobDTO[], nextCursor: string\|null, totalCount: number, partialHiddenCount: number }` |
 | GET /api/jobs/:id | — | `JobDTO` (description null이면 프론트는 원문 URL 폴백을 1급 요소로) |
 | GET /api/me/preferences | — | `UserPreference` |
 | PUT /api/me/preferences | `{ roles, locations, experience, keywords }` | `UserPreference` |
@@ -265,7 +265,7 @@ type JobDTO = Job & {
 - **마감 지난 공고는 기본 제외**(`includeExpired=false`). 단 GET /api/bookmarks는 includeExpired 무시(마감도 표시).
 - **마감임박순(sort=deadline)**: 커서는 `(deadline, id)` 복합. `deadline=null`(상시채용)은 **항상 맨 뒤**, 프론트는 "상시" 뱃지.
 - **PARTIAL 공고**: 조건 필터 시 null 필드 때문에 전부 사라지지 않도록, 필터로 가려지는 PARTIAL 공고 수를 `partialHiddenCount`로 반환 → 프론트는 "조건 확인 어려운 공고 N건"을 접이식으로 노출(모아보기 가치 보호). PARTIAL은 전용 카드(원문 직접 확인 CTA).
-- 필터 다중값 허용: `location=서울,경기`, `experience` 복수.
+- 필터 다중값 허용(콤마, 값 간 **OR/합집합**): `role=backend,fullstack`, `location=서울,경기`, `experience` 복수. 온보딩에서 직무를 복수 선택하면 피드 프리셋의 `role`에 합집합으로 반영된다(12.4 흐름과 일관).
 
 ### 12.7 M1 작업 분배·순서
 - **backend**: 스캐폴딩 → Prisma 스키마 → **타입 export + Mock seed 공개(프론트 unblock)** → SaraminAdapter(API 우선, 약관/robots 점검) → Normalizer(코드→라벨, **개발직군 job_cd 한정**)+dedupKey → API. 사람인 API는 이용신청→승인 + 하루 500콜·요청당 count≈110 상한 → day-1은 mock, 승인 후 실수집 교체.

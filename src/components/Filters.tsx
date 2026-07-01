@@ -59,24 +59,25 @@ export default function Filters({
         </div>
       </div>
 
-      {/* 직무 — API 는 단일 role 만 지원 → 단일 선택 드롭다운 */}
-      <div className="filters__row">
-        <label className="filters__label" htmlFor="f-role">
-          직무
-        </label>
-        <select
-          id="f-role"
-          className="select"
-          value={value.role ?? ""}
-          onChange={(e) => patch({ role: e.target.value || null })}
-        >
-          <option value="">전체 직무</option>
-          {DEV_ROLE_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </select>
+      {/* 직무 — 다중(콤마 OR). 온보딩의 복수 직무가 그대로 반영됨 */}
+      <div className="filters__row filters__row--wrap">
+        <span className="filters__label">직무</span>
+        <div className="chips">
+          {DEV_ROLE_OPTIONS.map((o) => {
+            const on = value.roles.includes(o.value);
+            return (
+              <button
+                key={o.value}
+                type="button"
+                className={`chip${on ? " chip--on" : ""}`}
+                aria-pressed={on}
+                onClick={() => patch({ roles: toggleIn(value.roles, o.value) })}
+              >
+                {o.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* 지역 — 다중 */}

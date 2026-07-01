@@ -16,7 +16,7 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <body>
-        {/* 북마크는 M1 에서 클라이언트 스토어(localStorage). 전 화면 공유 → 최상단 provider */}
+        {/* 북마크 상태(실 DB API + 낙관적 업데이트)를 전 화면에서 공유 → 최상단 provider */}
         <BookmarkProvider>
           <Nav />
           <main className="container">{children}</main>

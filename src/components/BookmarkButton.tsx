@@ -10,8 +10,9 @@ export default function BookmarkButton({
   jobId: string;
   size?: "md" | "lg";
 }) {
-  const { isBookmarked, toggle, ready } = useBookmarks();
+  const { isBookmarked, toggle, ready, isPending } = useBookmarks();
   const saved = isBookmarked(jobId);
+  const pending = isPending(jobId);
 
   return (
     <button
@@ -22,7 +23,7 @@ export default function BookmarkButton({
       aria-pressed={saved}
       aria-label={saved ? "북마크 해제" : "북마크에 저장"}
       title={saved ? "북마크 해제" : "북마크에 저장"}
-      disabled={!ready}
+      disabled={!ready || pending}
       onClick={(e) => {
         // 카드 전체 링크(stretched link) 클릭으로 전파되지 않게 막는다.
         e.preventDefault();

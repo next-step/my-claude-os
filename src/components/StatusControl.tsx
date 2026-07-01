@@ -17,7 +17,8 @@ export default function StatusControl({
   jobId: string;
   status: BookmarkStatus;
 }) {
-  const { setStatus } = useBookmarks();
+  const { setStatus, isPending } = useBookmarks();
+  const pending = isPending(jobId);
   return (
     <div className="segmented segmented--sm" role="group" aria-label="지원 상태">
       {OPTIONS.map((o) => (
@@ -28,6 +29,7 @@ export default function StatusControl({
             status === o.value ? " segmented__btn--on" : ""
           }`}
           aria-pressed={status === o.value}
+          disabled={pending}
           onClick={() => setStatus(jobId, o.value)}
         >
           {o.label}

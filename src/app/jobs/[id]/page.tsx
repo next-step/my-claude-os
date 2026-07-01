@@ -32,7 +32,7 @@ export default function JobDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const { entry, seedFrom } = useBookmarks();
+  const { entry } = useBookmarks();
 
   const [job, setJob] = useState<JobDTO | null>(null);
   const [loading, setLoading] = useState(true);
@@ -47,7 +47,6 @@ export default function JobDetailPage({
     fetchJob(id, ctrl.signal)
       .then((j) => {
         setJob(j);
-        seedFrom([j]);
       })
       .catch((e) => {
         if (e?.name === "AbortError") return;

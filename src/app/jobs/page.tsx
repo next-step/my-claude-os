@@ -12,7 +12,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import type { JobDTO, UserPreference } from "@/types/contract";
-import { LOCATION_OPTIONS } from "@/types/contract";
+import { DEV_ROLE_OPTIONS, LOCATION_OPTIONS } from "@/types/contract";
 import {
   DEFAULT_FILTERS,
   fetchJobs,
@@ -21,7 +21,6 @@ import {
   ApiRequestError,
   type FeedFilters,
 } from "@/lib/api";
-import { useBookmarks } from "@/lib/bookmarks";
 import Filters from "@/components/Filters";
 import JobCard from "@/components/JobCard";
 import { CardSkeletonList, EmptyState, ErrorState } from "@/components/states";
@@ -37,8 +36,10 @@ function presetFromPreference(pref: UserPreference): FeedFilters {
       : ["EXPERIENCED", "ANY"];
   return {
     ...DEFAULT_FILTERS,
-    // API role 은 단일값 → 선호 직무가 정확히 1개일 때만 프리셋(그 외 전체)
-    role: pref.roles.length === 1 ? pref.roles[0] : null,
+    // 선호 직무 전체를 합집합(OR)으로 프리셋(role 콤마 다중값 지원, 12.6)
+    roles: pref.roles.filter((r) =>
+      DEV_ROLE_OPTIONS.some((o) => o.value === r)
+    ),
     locations: pref.locations.filter((l) =>
       LOCATION_OPTIONS.some((o) => o.value === l)
     ),
@@ -48,8 +49,6 @@ function presetFromPreference(pref: UserPreference): FeedFilters {
 }
 
 export default function FeedPage() {
-  const { seedFrom } = useBookmarks();
-
   const [filters, setFilters] = useState<FeedFilters>(DEFAULT_FILTERS);
   const [filtersReady, setFiltersReady] = useState(false);
 
@@ -101,7 +100,6 @@ export default function FeedPage() {
           setTotalCount(res.totalCount);
           setPartialHiddenCount(res.partialHiddenCount);
           setNextCursor(res.nextCursor);
-          seedFrom(res.items); // 최초 1회 북마크 시드
         })
         .catch((e) => {
           if (e?.name === "AbortError") return;
@@ -138,7 +136,7 @@ export default function FeedPage() {
 
   // partialHiddenCount 펼침 → 이 공고들을 실제로 보이게: 직무/지역 필터 해제
   const revealPartial = () =>
-    setFilters((f) => ({ ...f, role: null, locations: [], cursor: null }));
+    setFilters((f) => ({ ...f, roles: [], locations: [], cursor: null }));
 
   return (
     <div className="page">

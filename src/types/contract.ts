@@ -145,6 +145,7 @@ export type JobSort = "deadline" | "recent";
  * 프론트는 이걸 URLSearchParams 로 직렬화. 다중값(location/experience)은 콤마로.
  */
 export interface JobsQuery {
+  /** 다중 가능, 콤마 구분: "backend,fullstack" (합집합). location/experience 와 동일 규약 */
   role?: string;
   /** 다중 가능, 콤마 구분: "서울,경기" */
   location?: string;

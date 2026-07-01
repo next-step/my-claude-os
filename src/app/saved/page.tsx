@@ -11,7 +11,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import type { BookmarkStatus, JobDTO } from "@/types/contract";
-import { fetchAllJobsIncludingExpired } from "@/lib/api";
+import { fetchBookmarks } from "@/lib/api";
 import { useBookmarks } from "@/lib/bookmarks";
 import {
   deadlineInfo,
@@ -32,7 +32,7 @@ const TABS: { key: Tab; label: string }[] = [
 ];
 
 export default function SavedPage() {
-  const { ready, map, entry, remove, seedFrom, isBookmarked } = useBookmarks();
+  const { ready, map, entry, remove, isBookmarked } = useBookmarks();
 
   const [allJobs, setAllJobs] = useState<JobDTO[]>([]);
   const [loading, setLoading] = useState(true);
@@ -43,10 +43,10 @@ export default function SavedPage() {
     const ctrl = new AbortController();
     setLoading(true);
     setError(null);
-    fetchAllJobsIncludingExpired(ctrl.signal)
-      .then((jobs) => {
-        setAllJobs(jobs);
-        seedFrom(jobs);
+    // GET /api/bookmarks — 이미 북마크된 공고만(마감 포함). 상태는 스토어로 관리.
+    fetchBookmarks(undefined, ctrl.signal)
+      .then((res) => {
+        setAllJobs(res.items);
       })
       .catch((e) => {
         if (e?.name === "AbortError") return;
@@ -118,7 +118,7 @@ export default function SavedPage() {
         </div>
       )}
 
-      {loading ? (
+      {loading || !ready ? (
         <CardSkeletonList count={3} />
       ) : error ? (
         <ErrorState message={error} onRetry={load} />
@@ -140,7 +140,7 @@ export default function SavedPage() {
       ) : (
         <ul className="cardList">
           {visible.map((job) => {
-            const e = entry(job.id);
+            const e = entry(job.id) ?? job.bookmark;
             const dl = deadlineInfo(job.deadline);
             const isPartial = job.dataQuality === "PARTIAL";
             return (
