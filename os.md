@@ -61,7 +61,13 @@
 | `market-scanner` | ② 수집 | 격리(웹 무거움) | Read, WebSearch, WebFetch | sonnet | 시장 스냅샷+출처 |
 | `portfolio-analyst` | ② 판단 | 격리 | Read, Write, Edit | opus | 데일리 리포트 저장 |
 | `monthly-reviewer` | ④ 복기 | 격리 | Read, Edit, Write | sonnet | 월간 리뷰(원칙 준수·시장 대응) append |
+| `return-calculator` | ④·온디맨드 | **공유 계산 SSOT** | Read | sonnet | 실질 실현손익(표면 vs 실질)+journal용 한 줄 |
 | (메인) | 오케스트레이션 | — | Task | — | 호출·취합·요약 |
+
+> `return-calculator`는 **`realized-return`과 `log-trade`(매도 경로) 두 스킬이 공유**한다. 서브에이전트로
+> 뽑은 근거는 컨텍스트 격리가 아니라 **재사용(DRY)·계산 일관성** — 두 곳이 세율·환율 공식을 각자
+> 구현하면 숫자가 어긋나므로 하나의 SSOT로 모았다. 두 스킬 다 메인 컨텍스트라 메인이 직접 호출한다
+> (아래 "서브에이전트는 서브에이전트를 못 부른다" 제약과 무관).
 
 > 제약: **subagent는 다른 subagent를 호출할 수 없다.** 모든 fan-out·취합은 메인이 한다.
 > `journal-keeper`(④ 매매 동기화)는 **의도적으로 subagent로 분리하지 않는다.** 매매 기록은
@@ -155,6 +161,7 @@
 
 새 기능은 **루프 단계에 매핑**해서 추가한다.
 - 새 역할 → `agents/`에 subagent 추가 + 메인 오케스트레이션에 연결(독립이면 병렬).
+- 여러 스킬이 쓰는 **순수 계산·판정 로직**은 공유 서브에이전트로 뽑는다(중복 구현 방지·값 일관성 — `return-calculator` 예).
 - 새 분석/조언 → ② 스킬 또는 `prompts/`에.
 - 새 기록 항목 → ③④의 상태 파일 스키마 확장.
 - 새 데이터 소스 → `05_reference/data-sources.md`.

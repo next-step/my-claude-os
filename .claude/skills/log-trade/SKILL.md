@@ -28,8 +28,10 @@ trade-journal 동시 갱신"**을 구현한다. 체결 상세뿐 아니라 **그
 > monthly-reviewer의 몫. 다만 감정 점수가 높으면(충동) 그 사실을 담담히 남긴다.
 
 ### 2. 매도면 실수익 계산 연결
-**매도 기록이면 `realized-return` 스킬로 실질 실현손익**(세후·수수료·환율 차감)을
+**매도 기록이면 `return-calculator` 서브에이전트로 실질 실현손익**(세후·수수료·환율 차감)을
 산출해 trade-journal "결과" 칸에 넣는다. 표면 수익률로 적지 않는다(커널: 실수익 기준).
+1단계에서 받은 체결가·수량·환율을 채워 넘기면 서브에이전트가 **표면 vs 실질 + 붙여넣을 한 줄**을
+반환한다. (realized-return 스킬과 **같은 계산 SSOT**라 숫자가 일관된다.)
 
 ### 3. trade-journal 갱신 (append, 최신순)
 `03_journal/trade-journal.md`의 **기록 템플릿**을 그대로 채워 "## 기록" 아래 **맨 위**에
@@ -64,4 +66,4 @@ trade-journal 동시 갱신"**을 구현한다. 체결 상세뿐 아니라 **그
 - [ ] 두 파일을 **함께** 갱신했는가(하나만 바뀐 채 끝내지 않기)
 - [ ] 주문·실행을 대신하지 않고 **기록만** 했는가
 
-관련: `02_portfolio/holdings.md` · `03_journal/trade-journal.md` · realized-return 스킬 · monthly-reviewer(월말 복기)
+관련: `02_portfolio/holdings.md` · `03_journal/trade-journal.md` · `return-calculator` 서브에이전트(실현손익 계산 SSOT) · realized-return 스킬 · monthly-reviewer(월말 복기)
