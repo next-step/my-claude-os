@@ -14,7 +14,7 @@ model: sonnet
 - scope 미지정 → 1~5 전부.
 
 종목 파악용 파일:
-- `02_portfolio/holdings.md` — 보유 종목(적립식/단타)
+- `02_portfolio/holdings.md` — 보유 종목(적립식·장기)
 - `02_portfolio/watchlist.md` — 관심 종목·매크로 감시
 - `05_reference/data-sources.md` — 신뢰 조회 사이트
 
