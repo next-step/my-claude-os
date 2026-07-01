@@ -1,2 +1,24 @@
 # macOS
 .DS_Store
+
+# dependencies
+/node_modules
+
+# next.js
+/.next
+/out
+next-env.d.ts
+
+# production
+/build
+
+# env
+.env
+.env*.local
+
+# prisma / sqlite (dev DB 는 커밋하지 않음)
+/prisma/dev.db
+/prisma/dev.db-journal
+
+# misc
+*.tsbuildinfo

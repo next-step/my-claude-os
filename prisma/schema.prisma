@@ -1,0 +1,79 @@
+// Prisma 스키마 — OS.md 12.3 계약 반영 (M1 / SQLite)
+//
+// [SQLite 제약 메모]
+//  - SQLite + Prisma 는 enum 을 지원하지 않는다 → experienceLevel / dataQuality / status 는
+//    String 컬럼으로 저장하고, 값의 유효 범위는 공유 타입(src/types/contract.ts)의 union 으로 강제한다.
+//    (계약의 "타입"은 그대로 유지, 저장 형식만 SQLite 에 맞춤. 계약 변경 아님.)
+//  - SQLite 는 배열/스칼라 리스트도 미지원 → UserPreference 의 roles/locations/keywords 는
+//    JSON 문자열로 저장하고 API 경계에서 parse/stringify 한다.
+//  - M2 에서 PostgreSQL 로 교체 시 enum / String[] / Json 으로 승격 가능(Prisma 가 추상화).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+/// 정규화 공통 공고 스키마 (OS.md 12.3)
+model Job {
+  id              String    @id @default(cuid())
+  source          String // 수집 소스("saramin" 등)
+  sourceJobId     String // 소스 원본 ID
+  url             String // 원문 출처 URL (폴백 시에도 항상 채움)
+  title           String
+  companyName     String
+  companyId       String? // M2 회사 리서치 연결용(M1 은 null)
+  jobRole         String? // 직무 분류(코드→라벨 매핑됨). M1 개발직군 한정
+  location        String? // 지역(코드→라벨 매핑됨)
+  experienceLevel String // "NEW" | "EXPERIENCED" | "ANY"  (SQLite enum 미지원 → String)
+  employmentType  String?
+  deadline        DateTime? // null = 상시채용/미정
+  postedAt        DateTime?
+  description     String? // 직무 요건. 사람인 API 는 본문 미제공 → 보통 null (본문 수집은 M2/M3)
+  dataQuality     String // "FULL" | "PARTIAL"
+  dedupKey        String // 회사+직무+지역 (마감일 제외). unique 아님 — 계산·저장만, 실제 병합은 M3
+
+  // [A-3] 회사 식별 원본 힌트 보존 자리 (M2 DART 공시 연결 대비).
+  // 사람인 응답에 사업자번호/법인명 원문 등이 있으면 버리지 말고 원본 payload 를 JSON 문자열로 보관.
+  // (SQLite Json 타입 회피 위해 String. M2 Postgres 이관 시 Json 승격.)
+  rawData String?
+
+  collectedAt DateTime @default(now())
+
+  bookmarks Bookmark[]
+
+  // 재수집 idempotent upsert 키. UNIQUE 제약은 이 하나뿐(OS.md 12.3).
+  @@unique([source, sourceJobId])
+  // 필터/정렬 인덱스 (12.6 규약: 마감임박순·직무·지역·경력 필터)
+  @@index([deadline])
+  @@index([dedupKey])
+  @@index([jobRole])
+  @@index([location])
+  @@index([experienceLevel])
+}
+
+/// 관심 공고 저장 (OS.md 12.3). isBookmarked 는 Job 컬럼이 아님 → 응답 DTO 에서 join 계산.
+model Bookmark {
+  id        String   @id @default(cuid())
+  jobId     String
+  job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  status    String   @default("PLANNED") // "PLANNED" | "APPLIED" | "CLOSED"
+  memo      String? // 가벼운 메모(정식 리서치 노트는 M2)
+  createdAt DateTime @default(now())
+
+  // M1 단일 로컬 사용자 → 공고당 북마크 1개 (POST 를 idempotent 하게)
+  @@unique([jobId])
+}
+
+/// 사용자 조건 (OS.md 12.3). M1 은 단일 로컬 사용자 → 고정 1행(id="local").
+model UserPreference {
+  id         String   @id @default("local")
+  roles      String   @default("[]") // JSON string[] (SQLite 배열 미지원)
+  locations  String   @default("[]") // JSON string[]
+  experience String   @default("ANY") // "NEW" | "EXPERIENCED" | "ANY"
+  keywords   String   @default("[]") // JSON string[]
+  updatedAt  DateTime @updatedAt
+}
