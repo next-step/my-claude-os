@@ -24,7 +24,7 @@
 |------|------|------|------|------|
 | `00_principles/investment-principles.md` | 설정(거의 불변) | ⭐ 지켜야 할 규칙 (적립식 규칙·리스크 수치) | ②④ 항상 참조 | ① 또는 사용자 명시 |
 | `01_profile/investor-profile.md` | 설정 | 내 투자 성향·약점 | ② 항상 참조 | ① |
-| `02_portfolio/holdings.md` | 상태(가변) | 보유 현황 (적립식·장기) | ② 항상 | ④ 매매시 |
+| `02_portfolio/holdings.md` | 상태(가변) · **로컬 전용(gitignore)** | 보유 현황 (적립식·장기). 최초엔 `holdings.example.md` 복사 | ② 항상 | ④ 매매시 |
 | `02_portfolio/watchlist.md` | 상태(가변) | 관심 종목 + 매크로 감시 | ② 항상 | 사용자/④ |
 | `03_journal/trade-journal.md` | 로그(append) | 매매 일지 (학습 입력값) | 월말 리뷰 | ④ 매매시 |
 | `04_daily/_template.md` | 양식(불변) | 데일리 리포트 양식 | ② 매일 | 사용자 명시 |
