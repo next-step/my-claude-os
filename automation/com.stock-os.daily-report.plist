@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  stock-os 데일리 리포트 자동 실행 (매일 아침 07:40 KST, 평일).
+  정본은 이 파일(프로젝트 내). 설치 시 ~/Library/LaunchAgents/ 로 복사한다.
+  설치/제거 방법은 automation/README.md 참고.
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.stock-os.daily-report</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/zsh</string>
+        <string>/Users/yeojin/dev/my-claude-code-os/automation/run-daily-report.sh</string>
+    </array>
+
+    <!-- 평일(월=1 ~ 금=5) 07:40 실행. Mac 로컬 시간대(KST) 기준.
+         해당 시각에 잠들어 있었다면 깨어날 때 실행된다. -->
+    <key>StartCalendarInterval</key>
+    <array>
+        <dict><key>Weekday</key><integer>1</integer><key>Hour</key><integer>7</integer><key>Minute</key><integer>40</integer></dict>
+        <dict><key>Weekday</key><integer>2</integer><key>Hour</key><integer>7</integer><key>Minute</key><integer>40</integer></dict>
+        <dict><key>Weekday</key><integer>3</integer><key>Hour</key><integer>7</integer><key>Minute</key><integer>40</integer></dict>
+        <dict><key>Weekday</key><integer>4</integer><key>Hour</key><integer>7</integer><key>Minute</key><integer>40</integer></dict>
+        <dict><key>Weekday</key><integer>5</integer><key>Hour</key><integer>7</integer><key>Minute</key><integer>40</integer></dict>
+    </array>
+
+    <key>StandardOutPath</key>
+    <string>/Users/yeojin/dev/my-claude-code-os/automation/logs/launchd.out.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/yeojin/dev/my-claude-code-os/automation/logs/launchd.err.log</string>
+
+    <key>RunAtLoad</key>
+    <false/>
+    <key>ProcessType</key>
+    <string>Background</string>
+</dict>
+</plist>
