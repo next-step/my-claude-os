@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Skill",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -c \"\nimport sys, json, datetime\nd = json.loads(sys.stdin.read())\nskill = d.get('tool_input', {}).get('skill', 'unknown')\nts = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')\nwith open('/Users/baeg-yunseo/Documents/my-claude-code-os/.claude/skill_calls.log', 'a') as f:\n    f.write(f'{ts} {skill}\\n')\n\""
+          }
+        ]
+      }
+    ]
+  }
+}
