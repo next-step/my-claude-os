@@ -1,0 +1,107 @@
+{
+  "updated_at": "2026-06-25",
+  "tournament": {
+    "name": "FIFA World Cup 26",
+    "edition": "제23회 FIFA 월드컵",
+    "hosts": [
+      { "name": "캐나다", "flag": "🇨🇦" },
+      { "name": "멕시코", "flag": "🇲🇽" },
+      { "name": "미국", "flag": "🇺🇸" }
+    ],
+    "dates": "2026.06.11 – 07.19",
+    "phase": "조별리그 최종전 (Matchday 3) 진행 중 — 6월 25~27일",
+    "next_phase": "32강 토너먼트 · 6.28 – 7.3"
+  },
+  "stats": [
+    { "label": "참가국", "value": "48", "sub": "사상 최다" },
+    { "label": "개최국", "value": "3", "sub": "🇨🇦 🇲🇽 🇺🇸 첫 공동개최" },
+    { "label": "32강 확정", "value": "14팀", "sub": "최종전 진행 중" },
+    { "label": "골든부트 선두", "value": "메시 5골", "sub": "통산 18골 역대 1위" }
+  ],
+  "headlines": [
+    {
+      "tag": "역사적 기록",
+      "title": "호날두, 6회 연속 월드컵 득점 — 인류 최초",
+      "body": "크리스티아누 호날두가 포르투갈의 우즈베키스탄전 5-0 대승에서 2골을 넣으며 6개 대회 연속 득점이라는 전무후무한 기록을 세웠다. 41세의 호날두는 이 득점으로 포르투갈 월드컵 역대 최다 득점자(통산 10골)에도 올랐다.",
+      "source": "ESPN"
+    },
+    {
+      "tag": "이변",
+      "title": "남아공, 한국 꺾고 사상 첫 토너먼트 진출",
+      "body": "남아프리카공화국이 6월 25일 한국을 1-0으로 꺾고 FIFA 월드컵 사상 처음으로 32강 토너먼트 진출에 성공했다. 22세 타펠로 마세코의 63분 결승골이 역사를 만들었다.",
+      "source": "France 24"
+    },
+    {
+      "tag": "역사적 기록",
+      "title": "메시, 월드컵 통산 18골 — 역대 단독 1위",
+      "body": "리오넬 메시가 이번 대회 5골을 기록하며 월드컵 통산 18골로 역대 최다 득점 단독 1위에 올라섰다. 오스트리아전 멀티골로 클로제(16골)를 넘어섰고, 골든부트 레이스도 선두를 달린다.",
+      "source": "ESPN"
+    },
+    {
+      "tag": "오늘의 경기",
+      "title": "6월 25일 6경기 — 미국·독일·일본 조별 최종전",
+      "body": "조별리그 최종전 6경기가 열린다. 에콰도르 vs 독일, 일본 vs 스웨덴, 튀르키예 vs 미국 등 굵직한 매치가 예정돼 32강 진출 판도가 결정된다.",
+      "source": "Yahoo Sports"
+    }
+  ],
+  "qualified": [
+    { "group": "A", "teams": [
+      { "name": "멕시코", "flag": "🇲🇽", "rank": 1, "note": "3전 전승·6득점 무실점 완벽한 조 1위" },
+      { "name": "남아프리카공화국", "flag": "🇿🇦", "rank": 2, "note": "한국 꺾고 사상 첫 토너먼트 진출" }
+    ]},
+    { "group": "B", "teams": [
+      { "name": "스위스", "flag": "🇨🇭", "rank": 1, "note": "캐나다 2-1 제압 후 조 1위 확정" },
+      { "name": "캐나다", "flag": "🇨🇦", "rank": 2, "note": "개최국, 조 2위 진출" }
+    ]},
+    { "group": "C", "teams": [
+      { "name": "브라질", "flag": "🇧🇷", "rank": 1, "note": "비니시우스 2골로 스코틀랜드 3-0 꺾고 7점 1위" },
+      { "name": "모로코", "flag": "🇲🇦", "rank": 2, "note": "조 2위로 토너먼트 진출 확정" }
+    ]},
+    { "group": "D", "teams": [
+      { "name": "미국", "flag": "🇺🇸", "rank": 1, "note": "개최국, 조 1위 조기 확정" }
+    ]},
+    { "group": "E", "teams": [
+      { "name": "독일", "flag": "🇩🇪", "rank": 1, "note": "코트디부아르 2-1 꺾고 조 1위 진출" }
+    ]},
+    { "group": "F", "teams": [
+      { "name": "네덜란드", "flag": "🇳🇱", "rank": 1, "note": "일본과 2-2 후 스웨덴 5-1 대파, 조 1위" },
+      { "name": "일본", "flag": "🇯🇵", "rank": 2, "note": "튀니지 4-0 완파로 조 2위 확정" }
+    ]},
+    { "group": "I", "teams": [
+      { "name": "프랑스", "flag": "🇫🇷", "rank": 1, "note": "세네갈·이라크 연파, 조 1위 조기 확정" },
+      { "name": "노르웨이", "flag": "🇳🇴", "rank": 2, "note": "이라크·세네갈 연승으로 조 2위 진출" }
+    ]},
+    { "group": "J", "teams": [
+      { "name": "아르헨티나", "flag": "🇦🇷", "rank": 1, "note": "메시 멀티골로 오스트리아 제압, 조 1위 확정" }
+    ]},
+    { "group": "K", "teams": [
+      { "name": "콜롬비아", "flag": "🇨🇴", "rank": 1, "note": "DR콩고 제압 후 조 1위로 진출 확정" }
+    ]}
+  ],
+  "spotlight": {
+    "title": "A조 스포트라이트 — 대한민국 🇰🇷",
+    "summary": "대한민국은 체코를 2-1로 꺾으며 산뜻하게 출발했지만, 멕시코(0-1)와 남아프리카공화국(0-1)에 연달아 1골 차로 패하며 3위(3점)로 조별리그를 마쳤다. 골득실 -1로 각 조 3위 와일드카드 진출을 노리며 타 조 결과를 기다리고 있다.",
+    "table": [
+      { "team": "멕시코",  "flag": "🇲🇽", "p": 3, "w": 3, "d": 0, "l": 0, "gf": 6, "ga": 0, "pts": 9, "status": "진출" },
+      { "team": "남아프리카공화국", "flag": "🇿🇦", "p": 3, "w": 1, "d": 1, "l": 1, "gf": 2, "ga": 3, "pts": 4, "status": "진출" },
+      { "team": "대한민국", "flag": "🇰🇷", "p": 3, "w": 1, "d": 0, "l": 2, "gf": 2, "ga": 3, "pts": 3, "status": "대기중" },
+      { "team": "체코",    "flag": "🇨🇿", "p": 3, "w": 0, "d": 1, "l": 2, "gf": 2, "ga": 6, "pts": 1, "status": "탈락" }
+    ]
+  },
+  "golden_boot": [
+    { "name": "리오넬 메시",   "flag": "🇦🇷", "team": "아르헨티나", "goals": 5, "note": "월드컵 통산 18골 역대 단독 1위, 골든부트 선두" },
+    { "name": "비니시우스 주니오르", "flag": "🇧🇷", "team": "브라질", "goals": 4, "note": "브라질 공격진 핵심, 메시 추격 중" },
+    { "name": "킬리안 음바페", "flag": "🇫🇷", "team": "프랑스", "goals": 4, "note": "홀란드와 공동 2위, 통산 16골" }
+  ],
+  "sources": [
+    { "name": "Yahoo Sports — 결과·순위·일정", "url": "https://sports.yahoo.com/soccer/article/2026-world-cup-results-standings-and-schedule-live-scores-group-stage-updates-and-how-to-watch-050724193.html" },
+    { "name": "NBC Sports — 32강 진출팀 현황", "url": "https://www.nbcsports.com/soccer/news/which-teams-have-qualified-for-last-32-of-the-2026-world-cup-who-is-in-the-knockout-rounds" },
+    { "name": "Al Jazeera — 토너먼트 진출팀", "url": "https://www.aljazeera.com/sports/2026/6/25/which-teams-have-qualified-for-the-world-cup-2026-knockouts-round-of-32" },
+    { "name": "FIFA 공식 — 순위표", "url": "https://www.fifa.com/ko/tournaments/mens/worldcup/canadamexicousa2026/standings" },
+    { "name": "Bolavip — A조 최종 순위표", "url": "https://bolavip.com/en/world-cup/2026-world-cup-group-a-final-standings-updated-after-czechia-vs-mexico-and-south-africa-vs-south-korea" },
+    { "name": "ESPN — 호날두 6회 연속 득점", "url": "https://www.espn.com/soccer/story/_/id/49154970/portugal-cristiano-ronaldo-goal-first-score-six-world-cups-uzbekistan" },
+    { "name": "France 24 — 남아공 사상 첫 토너먼트행", "url": "https://www.france24.com/en/sport/20260625-world-cup-2026-south-africa-reach-knockout-stage-for-first-time-with-win-over-south-korea" },
+    { "name": "ESPN — 메시 월드컵 최다 득점", "url": "https://www.espn.com/soccer/story/_/id/49140402/lionel-messi-world-cup-record-goals-miroslav-klose-all" },
+    { "name": "Yahoo Sports — 골든부트 레이스", "url": "https://sports.yahoo.com/soccer/article/world-cup-goal-leaders-lionel-messi-leads-golden-boot-race-but-kylian-mbappe-and-erling-haaland-are-closing-in-010143798.html" }
+  ]
+}
