@@ -6,3 +6,8 @@
 
 # 자동화 실행 로그 — 로컬 전용.
 automation/logs/
+
+# 데일리 리포트 산출물 — 매일 재생성 가능 + 보유 기반 개인 조언 포함 → 로컬 전용.
+# 단, 양식(_template.md)은 OS 구성요소이므로 커밋 유지.
+04_daily/*.md
+!04_daily/_template.md
