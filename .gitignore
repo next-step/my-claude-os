@@ -1,0 +1,6 @@
+.obsidian
+.DS_Store
+.env
+
+# 비공개 실제 장부 (실제 금액·수익률)
+*.private.md
