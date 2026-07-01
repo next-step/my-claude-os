@@ -139,6 +139,16 @@
 - 한국·미국을 시간대별로 나눠 보려면 plist의 `StartCalendarInterval`에 시각을
   추가하거나 plist를 2개로 분리.
 
+### Hook (커널 규칙 자동 보강)
+
+- **PostToolUse hook**이 커널 §1 **"기록 없는 매매 없음"**을 보강한다: `holdings.md`가
+  Write/Edit되면 `trade-journal`도 함께 갱신했는지 **리마인드**한다. 구현은
+  `automation/hooks/holdings-journal-guard.sh`, 등록은 `.claude/settings.json`.
+- **차단이 아니라 nudge**다 — journal 갱신은 매매기록 흐름상 편집 뒤에 오는 게 정상이라,
+  편집을 막지 않고 `exit 2`로 리마인드만 Claude 루프에 피드백해 후속 조치(`log-trade`)를 유도한다.
+- 하니스(사람 아님)가 실행하는 자동 동작이라 **hook으로만** 구현 가능하다(메모리·선호로는 불가).
+  다른 파일 편집엔 개입하지 않는다.
+
 ---
 
 ## 10. 자주 쓰는 작업

@@ -13,7 +13,26 @@
 |------|------|
 | `run-daily-report.sh` | launchd가 호출하는 러너. `claude -p "데일리 리포트 만들어줘" --allowedTools "..."` 실행(최소권한) |
 | `com.stock-os.daily-report.plist` | launchd 스케줄 정의(정본). 설치 시 `~/Library/LaunchAgents/`로 복사 |
+| `hooks/holdings-journal-guard.sh` | Claude Code **PostToolUse hook**. holdings.md 편집 시 trade-journal 동시 갱신 리마인드(os.md §9·커널 §1) |
 | `logs/` | 실행 로그(gitignore). 30일 초과분은 러너가 자동 삭제 |
+
+## Hook — 기록 없는 매매 없음 (커널 §1 보강)
+
+`.claude/settings.json`에 등록된 **PostToolUse(Write|Edit) hook**이 `holdings.md` 편집을 감지하면,
+`trade-journal`도 함께 갱신했는지 리마인드한다. 하니스가 파일 편집 **직후** 자동 실행하는
+동작이라 메모리·선호가 아니라 hook으로만 구현된다.
+
+- **차단이 아니라 nudge**: journal 갱신은 편집 뒤에 오는 게 정상 흐름이라, 편집을 막지 않고
+  `exit 2`로 리마인드를 Claude 루프에 피드백해 `log-trade` 후속 조치를 유도한다.
+- **jq 없으면 grep 폴백**으로 `file_path`를 추출한다. holdings.md가 아닌 편집엔 조용히 통과(exit 0).
+
+동작 확인(스케줄·세션과 무관하게 스크립트만 테스트):
+```sh
+# holdings.md → 리마인드 + exit 2
+echo '{"tool_input":{"file_path":"…/02_portfolio/holdings.md"}}' | bash automation/hooks/holdings-journal-guard.sh; echo "exit=$?"
+# 다른 파일 → 무출력 + exit 0
+echo '{"tool_input":{"file_path":"…/02_portfolio/watchlist.md"}}' | bash automation/hooks/holdings-journal-guard.sh; echo "exit=$?"
+```
 
 ## 설치
 
