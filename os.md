@@ -28,10 +28,11 @@
 | `02_portfolio/watchlist.md` | 상태(가변) | 관심 종목 + 매크로 감시 | ② 항상 | 사용자/④ |
 | `03_journal/trade-journal.md` | 로그(append) | 매매 일지 (학습 입력값) | 월말 리뷰 | ④ 매매시 |
 | `04_daily/_template.md` | 양식(불변) | 데일리 리포트 양식 | ② 매일 | 사용자 명시 |
-| `04_daily/YYYY-MM-DD.md` | 산출물 | 날짜별 데일리 리포트 | 복기 | ② 매일 |
+| `04_daily/YYYY-MM-DD.md` | 산출물 · **로컬 전용(gitignore)** | 날짜별 데일리 리포트 (재생성 가능·보유 기반 개인 조언) | 복기 | ② 매일 |
 | `05_reference/data-sources.md` | 참조(거의 불변) | 신뢰 증권/분석 사이트 | ② 필요시 | 연 단위 갱신 |
 | `05_reference/tax-and-fees.md` | 참조(거의 불변) | 세금·거래세·수수료 | ② 실수익 계산시 | 연 단위 갱신 |
 | `prompts/daily-advice-prompt.md` | 참조 | 데일리 조언 프롬프트 | ② | 사용자 명시 |
+| `automation/` | 자동화 | ② 데일리 조언 로컬 스케줄(launchd 러너+plist). 안내는 `automation/README.md` | 설치/수정시 | 사용자 명시 |
 
 ---
 
@@ -63,7 +64,10 @@
 | (메인) | 오케스트레이션 | — | Task | — | 호출·취합·요약 |
 
 > 제약: **subagent는 다른 subagent를 호출할 수 없다.** 모든 fan-out·취합은 메인이 한다.
-> `journal-keeper`(④ 매매 동기화)는 현재 미분리 — 메인/데일리 흐름에서 처리. 필요시 분리.
+> `journal-keeper`(④ 매매 동기화)는 **의도적으로 subagent로 분리하지 않는다.** 매매 기록은
+> 체결 상세·그때 감정·thesis를 **되물으며** 채우는 대화형 작업인데 subagent는 사용자와
+> 대화할 수 없다(프롬프트 1개 받고 결과만 반환). → 대신 **메인 컨텍스트 스킬 `log-trade`**로
+> 구현(holdings+trade-journal 동시 갱신, 매도 시 realized-return 연결). §10 참조.
 
 ---
 
@@ -93,6 +97,8 @@
 - 커뮤니티·"카더라"를 단독 근거로 한 매매를 권하지 않는다.
 - 수익 보장·확정적 예측 표현을 쓰지 않는다. AI 조언은 판단 보조이며 책임은 사용자에게 있음을 전제한다.
 - 단정적 "사라/팔아라" 금지. 목표가·손절가·근거가 있는 시나리오로 제안한다.
+- **무인 자동 실행은 최소권한으로만.** 모든 권한 우회(`--dangerously-skip-permissions`) 금지 —
+  파이프라인이 실제 쓰는 도구만 `--allowedTools`로 허용하고 **`Bash`는 불허**(임의 셸 실행 차단). → §9
 
 ---
 
@@ -121,6 +127,9 @@
   구현: `automation/` (러너 스크립트 + plist). 설치·제거는 `automation/README.md`.
 - **로컬 스케줄인 이유**: `holdings.md`가 로컬 전용(gitignore)이라 클라우드 에이전트는
   접근 불가. 개인화(§7)를 지키려면 로컬에서 실제 보유 파일을 읽어야 한다.
+- **권한 모델(§6)**: 러너는 `--dangerously-skip-permissions`가 아니라
+  `--allowedTools "Task Read Write Edit Glob Grep WebSearch WebFetch"`로 최소권한 실행.
+  `Bash` 불허 → 데일리 파이프라인은 파일 읽기·웹조회·`04_daily` 저장에만 쓰인다.
 - 한국·미국을 시간대별로 나눠 보려면 plist의 `StartCalendarInterval`에 시각을
   추가하거나 plist를 2개로 분리.
 
@@ -129,9 +138,16 @@
 ## 10. 자주 쓰는 작업
 
 - 데일리 리포트 생성 → `daily-report` 스킬
-- 매매 기록 → `holdings` + `trade-journal` 갱신
+- 리밸런싱 비중 점검 → `rebalance-check` 스킬 (미국7:한국3·단일종목20%·±5%p 드리프트)
+- 매도 실수익(세후·수수료·환율) 계산 → `realized-return` 스킬
+- 매매 기록(대화형) → `log-trade` 스킬 (holdings + trade-journal 동시 갱신, 매도 시 실수익 연결)
 - 성향 인터뷰 → `investor-profile` 채우기
 - 월말 복기 → `trade-journal` 하단 월간 리뷰
+
+> `rebalance-check`·`realized-return`은 ②의 데일리와 별개인 **온디맨드 분석 스킬**이다.
+> 웹조회 없이 로컬 파일 읽기·계산만 하므로 subagent 격리 없이 **메인 컨텍스트에서 실행**한다
+> (무거운 웹 fan-out 때문에 subagent를 쓰는 `daily-report`와 대비되는 설계 판단 — §4·§5).
+> 둘 다 `holdings.md`가 로컬 전용이라 **로컬 실행 전용**이다(§9와 동일한 이유).
 
 ---
 
