@@ -1,6 +1,6 @@
 ---
 name: market-researcher
-description: 주어진 "조사 대상"(내 보유 종목 하나 또는 시장 테마 하나)에 대해 최근 시장 동향과 뉴스를 웹에서 출처 기반으로 조사해 3~4줄 브리핑으로 요약하는 서브 에이전트. stock-os(종목별)와 market-now(시장 테마) 스킬에서 공용으로 호출된다.
+description: 주어진 "조사 대상"(내 보유 종목 하나 또는 시장 테마 하나)에 대해 최근 시장 동향과 뉴스를 웹에서 출처 기반으로 조사해 3~4줄 브리핑으로 요약하는 서브 에이전트. study-loop(브리핑)와 market-now(시장 테마) 두 스킬에서 공용으로 호출된다.
 tools: WebSearch, WebFetch, Read
 ---
 
