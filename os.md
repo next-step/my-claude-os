@@ -48,7 +48,12 @@
 | ① 성향 인터뷰 | AI | 사용자 답변 | 성향·약점 진단 | `01_profile/investor-profile.md`, `00_principles` 수치 확정 |
 | ② 데일리 조언 | AI | profile+holdings+watchlist+시장데이터 | 개인화 분석 | `04_daily/YYYY-MM-DD.md` |
 | ③ 실행 | **사람** | 데일리 조언 | 매수/매도 결정·주문 | (체결 결과) |
+| ③′ 실행 전 점검 | AI(선택) | 매매 의도 | 원칙·약점 대조 | `pre-trade-check` 시나리오(실행은 사람) |
 | ④ 학습·기록 | AI | 체결 결과·결과 복기 | 일지화·패턴 추출 | `holdings`+`trade-journal` 갱신, 월말 리뷰 |
+
+> ③′은 **선택적 게이트**다. 실행은 100% 사람이지만 사용자 최대 리스크(프로필 D: FOMO·물타기)가
+> 터지는 지점이 ③이라, 저지르기 전에 원칙 트리거를 되짚는 `pre-trade-check`를 ③ 앞에 둘 수 있다.
+> AI는 막지 않고 시나리오로 되돌려줄 뿐 — 가드레일(§6) 그대로.
 
 ---
 
@@ -154,16 +159,22 @@
 ## 10. 자주 쓰는 작업
 
 - 데일리 리포트 생성 → `daily-report` 스킬
+- **매수/매도 실행 직전 점검(FOMO·물타기 게이트) → `pre-trade-check` 스킬** (③′, 실행 전)
+- 보유 종목 thesis 훼손 점검(분기) → `thesis-review` 스킬
 - 리밸런싱 비중 점검 → `rebalance-check` 스킬 (미국7:한국3·단일종목20%·±5%p 드리프트)
 - 매도 실수익(세후·수수료·환율) 계산 → `realized-return` 스킬
 - 매매 기록(대화형) → `log-trade` 스킬 (holdings + trade-journal 동시 갱신, 매도 시 실수익 연결)
 - 성향 인터뷰 → `investor-profile` 채우기
 - 월말 복기 → `trade-journal` 하단 월간 리뷰
 
-> `rebalance-check`·`realized-return`은 ②의 데일리와 별개인 **온디맨드 분석 스킬**이다.
-> 웹조회 없이 로컬 파일 읽기·계산만 하므로 subagent 격리 없이 **메인 컨텍스트에서 실행**한다
-> (무거운 웹 fan-out 때문에 subagent를 쓰는 `daily-report`와 대비되는 설계 판단 — §4·§5).
-> 둘 다 `holdings.md`가 로컬 전용이라 **로컬 실행 전용**이다(§9와 동일한 이유).
+> `pre-trade-check`·`thesis-review`·`rebalance-check`·`realized-return`은 ②의 데일리와 별개인
+> **온디맨드 스킬**이다. 대부분 웹조회가 없어 격리 불필요 → 오케스트레이션은 **메인 컨텍스트에서** 한다.
+> - `pre-trade-check`·`rebalance-check`: 로컬 파일 읽기 + 결정론적 판정뿐. 웹·subagent 없음.
+> - `realized-return`: 계산 부분을 `return-calculator` 서브에이전트에 위임 — 격리가 아니라
+>   **재사용(DRY)·계산 일관성**이 근거다(`log-trade` 매도 경로와 같은 SSOT로 숫자 일치 — §4).
+> - `thesis-review`: 펀더멘털 뉴스 조회가 필요해 **`market-scanner`를 재사용**(daily-report와 같은
+>   fan-out 패턴 — §5). 판정은 메인이 한다.
+> 네 스킬 모두 `holdings.md`가 로컬 전용이라 **로컬 실행 전용**이다(§9와 동일한 이유).
 
 ---
 
