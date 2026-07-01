@@ -1,54 +1,40 @@
 ---
 name: commit
-description: 변경 사항을 분석해 Conventional Commits 형식의 커밋 메시지를 작성하고 GitHub(origin)에 커밋·푸시한다. 사용자가 "커밋", "커밋해줘", "github에 올려줘", "푸시" 등을 요청할 때 사용한다.
+description: Stage and commit the current working-tree changes with a clean, conventional commit message. Use when the user asks to commit, save progress to git, or after a paper-os cycle finishes to commit the new outputs. Optionally pushes when asked.
 ---
 
-# Commit 스킬
+# /commit — 커밋 스킬
 
-현재 작업 트리의 변경 사항을 커밋하고 GitHub(`origin`)에 푸시한다.
+작업 트리의 변경사항을 검토해 **깔끔한 커밋 메시지**로 커밋합니다.
+`paper-os` 사이클이 끝난 뒤 새 논문 산출물을 저장하는 데도 사용합니다.
 
-## 진행 순서
+## 절차
+1. **상태 확인**: 병렬로 실행
+   - `git -C "<repo>" status --short`
+   - `git -C "<repo>" diff --stat`
+   - 최근 스타일 참고: `git -C "<repo>" log --oneline -5`
+2. **제외 확인**: 민감/머신별 파일(`settings.local.json` 등)이 `.gitignore`로 빠졌는지 확인. 실수로 커밋될 것 같으면 사용자에게 알린다.
+3. **스테이징**: 논리적으로 관련된 변경을 함께 `git add`. (기본은 `git add -A`, 단 무관한 변경이 섞였으면 파일 단위로.)
+4. **메시지 작성**: 아래 규칙에 맞춰.
+5. **커밋**: `git commit -F -` 로 heredoc 메시지 전달(따옴표 이스케이프 문제 회피).
+6. **보고**: `git log --oneline -1` 로 결과 확인 후 커밋 해시·요약을 보고.
+7. **푸시**: 사용자가 요청했거나 "커밋하고 올려줘" 맥락이면 `git push origin <현재브랜치>`. 아니면 푸시하지 않고 "푸시할까요?"로 마무리.
 
-1. **현재 상태 파악** — 다음 명령을 한 번에 실행해 무엇이 바뀌었는지 확인한다.
-   - `git status`
-   - `git diff --stat` 과 `git diff` (스테이징되지 않은 변경)
-   - `git diff --cached` (이미 스테이징된 변경)
-   - `git log --oneline -10` (기존 커밋 메시지 스타일 참고)
+## 커밋 메시지 규칙
+```
+<요약 한 줄: 명령형, ~72자, 무엇을 왜>
 
-2. **커밋할 변경 선택**
-   - 사용자가 특정 파일만 지정했으면 그 파일만 스테이징한다.
-   - 지정이 없으면 관련된 변경을 함께 묶어 `git add` 한다.
-   - `.env`, 자격증명, 대용량 빌드 산출물 등 커밋하면 안 되는 파일이 보이면 멈추고 사용자에게 알린다.
+<본문(선택): 무엇을/왜 바뀌었는지 불릿 몇 줄>
 
-3. **커밋 메시지 작성** — Conventional Commits 형식을 따른다.
-   - 형식: `<type>: <요약>` (예: `feat: 커밋 스킬 추가`)
-   - type 예시: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `style`
-   - 요약은 50자 이내, 명령형보다는 "무엇을 했는지" 한국어로 간결하게.
-   - 변경이 여러 갈래면 본문(body)에 불릿으로 핵심을 정리한다.
-   - 기존 `git log`의 언어·스타일(이 저장소는 한국어 커밋)을 따른다.
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
+```
+- 요약은 명령형("Add…", "Fix…", "Organize…"), 마침표 없이.
+- paper-os 산출 커밋이면 요약에 논문 slug/제목을 넣는다.
+  예: `Add analysis outputs for joyai-vl (2606.14777)`
+- 본문에는 어떤 단계가 PASS/FAIL이었는지, 새 폴더 경로 등 유용한 맥락을 적는다.
 
-4. **커밋 실행**
-   - 여러 줄 메시지는 heredoc을 사용한다:
-     ```bash
-     git commit -m "$(cat <<'EOF'
-     feat: 요약 한 줄
-
-     - 변경 내용 1
-     - 변경 내용 2
-     EOF
-     )"
-     ```
-
-5. **푸시**
-   - 현재 브랜치를 `origin`에 푸시한다: `git push origin HEAD`
-   - 업스트림이 없으면 `git push -u origin <현재브랜치>` 로 설정한다.
-   - 푸시는 외부로 내보내는 작업이므로, 사용자가 "푸시까지 해줘"라고 명시하지 않았다면 커밋 후 푸시 여부를 한 번 확인한다.
-
-6. **결과 보고** — 커밋 해시와 푸시된 브랜치, GitHub에서 확인할 수 있는 위치를 알려준다.
-
-## 주의사항
-
-- 절대 `--no-verify`로 훅을 건너뛰지 않는다. 훅이 실패하면 원인을 고치고 다시 커밋한다.
-- `git commit --amend`나 `git push --force`는 사용자가 명시적으로 요청할 때만 사용한다.
-- 기본 브랜치(main)에 직접 커밋하지 않는다. main이면 작업 브랜치를 먼저 만든다.
-- 커밋 전 변경 내용을 실제로 확인한 뒤 메시지를 작성한다. 추측으로 메시지를 쓰지 않는다.
+## 규칙
+- **기본 브랜치(main 등)에 직접 커밋 금지**가 필요한 상황이면 먼저 브랜치를 판다. 현재 저장소는 작업 브랜치(`step2-1` 등)에서 진행 중이면 그대로 커밋.
+- 훅(hook)을 우회하지 말 것(`--no-verify` 금지). 훅 실패 시 원인을 고친다.
+- 커밋할 변경이 없으면 그 사실만 보고하고 종료.
+- 사용자가 명시적으로 요청하지 않는 한 amend/force-push 하지 않는다.
