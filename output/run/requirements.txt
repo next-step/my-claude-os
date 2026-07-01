@@ -1,0 +1,8 @@
+# LiveEdit 최소 재현 데모 — 토이 CPU 데모 의존성
+# (실제 검증 환경: Python 3.10.9 / Windows / 아래 버전으로 동작 확인)
+torch>=1.12        # 검증: 1.12.1 (CPU)
+numpy>=1.21        # 검증: 1.23.5
+#
+# 주의: 본 데모는 flash-attn / Wan2.1 가중치 / LiveEdit 체크포인트가 필요 없습니다.
+# 04_code.md의 4개 핵심 메커니즘만 순수 PyTorch CPU 연산으로 재현합니다.
+# 전체 LiveEdit 추론(test.mp4 편집)에는 Linux + NVIDIA GPU + flash-attn + 가중치 2종이 필요합니다.

@@ -1,0 +1,21 @@
+# 머신별 로컬 설정 (절대경로/권한 allowlist 포함 — 커밋 금지)
+.claude/settings.local.json
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+
+# 실행 산출물 캐시/가중치 (대용량, 재현 가능)
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+
+# OS/IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
