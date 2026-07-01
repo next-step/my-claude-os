@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>주식 OS — Week 1 구성 스냅샷</title>
+<style>
+  :root{
+    --bg:#0f1420; --panel:#171d2b; --panel2:#1e2637; --line:#2a3346;
+    --ink:#e8edf6; --muted:#9aa7bd; --accent:#4f8cff; --accent2:#22c98a;
+    --warn:#f5a623; --danger:#ff6b6b; --chip:#243049;
+    --radius:14px;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:linear-gradient(180deg,#0d1119,#0f1420 240px);
+    color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;
+    line-height:1.7; -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1080px; margin:0 auto; padding:40px 22px 80px}
+  header.hero{padding:14px 0 26px; border-bottom:1px solid var(--line); margin-bottom:34px}
+  .kicker{color:var(--accent); font-weight:700; letter-spacing:.12em; font-size:.78rem; text-transform:uppercase}
+  h1{font-size:2rem; margin:.35em 0 .2em}
+  .sub{color:var(--muted); font-size:1.02rem; margin:0}
+  .meta{margin-top:16px; display:flex; flex-wrap:wrap; gap:8px}
+  .pill{background:var(--chip); color:var(--muted); border:1px solid var(--line);
+        border-radius:999px; padding:4px 12px; font-size:.82rem}
+  .pill b{color:var(--ink)}
+  h2{font-size:1.32rem; margin:44px 0 6px; display:flex; align-items:center; gap:10px}
+  h2 .no{color:var(--accent); font-variant-numeric:tabular-nums}
+  .lead{color:var(--muted); margin:0 0 18px}
+  .grid{display:grid; gap:16px}
+  .g2{grid-template-columns:repeat(2,1fr)}
+  .g3{grid-template-columns:repeat(3,1fr)}
+  @media(max-width:820px){.g2,.g3{grid-template-columns:1fr}}
+  .card{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius);
+        padding:18px 18px 16px; position:relative}
+  .card h3{margin:0 0 4px; font-size:1.08rem; display:flex; align-items:center; gap:8px; flex-wrap:wrap}
+  .card .role{color:var(--muted); font-size:.92rem; margin:0 0 12px}
+  .mono{font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace; font-size:.92em}
+  .name{font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace; color:#bcd2ff}
+  .tags{display:flex; flex-wrap:wrap; gap:6px; margin-top:10px}
+  .tag{font-size:.74rem; padding:3px 9px; border-radius:7px; background:var(--chip); color:var(--muted); border:1px solid var(--line)}
+  .tag.tool{background:#1b2a44; color:#9dc0ff; border-color:#274066}
+  .tag.by{background:#2a2340; color:#c9b8ff; border-color:#3d3358}
+  .badge{font-size:.7rem; font-weight:700; padding:3px 8px; border-radius:6px; letter-spacing:.02em}
+  .b-share{background:rgba(34,201,138,.15); color:var(--accent2); border:1px solid rgba(34,201,138,.35)}
+  .b-norec{background:rgba(245,166,35,.14); color:var(--warn); border:1px solid rgba(245,166,35,.35)}
+  .b-orch{background:rgba(79,140,255,.16); color:#9dc0ff; border:1px solid rgba(79,140,255,.4)}
+  .flow{counter-reset:step; display:grid; gap:10px; margin-top:6px}
+  .step{background:var(--panel2); border:1px solid var(--line); border-radius:12px; padding:14px 16px 14px 54px; position:relative}
+  .step::before{counter-increment:step; content:counter(step); position:absolute; left:14px; top:13px;
+    width:26px; height:26px; border-radius:50%; background:var(--accent); color:#04122e;
+    font-weight:800; display:grid; place-items:center; font-size:.9rem}
+  .step b{color:var(--ink)} .step .d{color:var(--muted); font-size:.92rem}
+  .note{background:var(--panel2); border:1px solid var(--line); border-left:3px solid var(--accent);
+    border-radius:10px; padding:12px 16px; margin:10px 0; color:var(--muted); font-size:.93rem}
+  .note.warn{border-left-color:var(--warn)} .note.ok{border-left-color:var(--accent2)}
+  ul.clean{margin:8px 0 0; padding-left:18px} ul.clean li{margin:4px 0; color:var(--muted)}
+  ul.clean li b{color:var(--ink)}
+  table{width:100%; border-collapse:collapse; margin-top:8px; font-size:.92rem}
+  th,td{text-align:left; padding:10px 12px; border-bottom:1px solid var(--line); vertical-align:top}
+  th{color:var(--muted); font-weight:600; font-size:.82rem; text-transform:uppercase; letter-spacing:.04em}
+  td .name{white-space:nowrap}
+  .files code{background:var(--chip); border:1px solid var(--line); border-radius:6px; padding:2px 7px; color:#bcd2ff; font-size:.86rem}
+  footer{margin-top:56px; padding-top:20px; border-top:1px solid var(--line); color:var(--muted); font-size:.86rem}
+  .arrow{color:var(--accent); font-weight:800}
+  .legend{display:flex; gap:14px; flex-wrap:wrap; margin-top:10px; color:var(--muted); font-size:.84rem}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <div class="kicker">Stock OS · Week 1</div>
+    <h1>📈 주식 OS — 현재 구성 한눈에 보기</h1>
+    <p class="sub">주린이가 Claude Code로 <b>주식을 배우고</b>, <b>매일 시장을 받아보고</b>, <b>사람 승인 하에</b> 보유를 관리하는 개인 OS.</p>
+    <div class="meta">
+      <span class="pill">기준일 <b>2026-07-01</b></span>
+      <span class="pill">스킬 <b>5</b></span>
+      <span class="pill">서브에이전트 <b>5</b></span>
+      <span class="pill">훅 <b>1</b></span>
+      <span class="pill">공유 에이전트 <b>1</b></span>
+    </div>
+  </header>
+
+  <!-- 원칙 -->
+  <h2><span class="no">01</span> 핵심 원칙</h2>
+  <p class="lead">모든 스킬이 이 5가지를 따른다. 충돌 시 <span class="mono">OS.md</span>가 우선.</p>
+  <div class="grid g3">
+    <div class="card"><h3>🙋 사람이 방아쇠</h3><p class="role">Claude는 추천·근거까지만. 실제 매수/매도는 항상 사용자가 승인·실행 (Human-in-the-loop).</p></div>
+    <div class="card"><h3>📒 내 실제 보유가 기준</h3><p class="role">현재는 사용자가 직접 내용을 입력하지만, 정보를 자동으로 조회하는 방향으로 수정 예정</p></div>
+    <div class="card"><h3>🔎 근거 없는 추천 금지</h3><p class="role">모든 판단은 데이터·이유·리스크를 함께.</p></div>
+    <div class="card"><h3>🎓 교육 우선</h3><p class="role">"종목 찍어주기"보다 "읽는 법"을 가르친다.</p></div>
+  </div>
+
+  <!-- 큰 그림 -->
+  <h2><span class="no">02</span> 큰 그림 — 팀장과 팀원</h2>
+  <p class="lead">각 스킬은 <b>오케스트레이터(팀장)</b>. 일을 잘게 쪼개 <b>서브에이전트(팀원)</b>에게 위임하고, 팀원은 독립 컨텍스트에서 한 가지 일만 해 <b>결과만</b> 돌려준다.</p>
+  <div class="note">사용자 <span class="arrow">→</span> <b>스킬(팀장)</b> <span class="arrow">→</span> 병렬 <b>서브에이전트(팀원)</b> <span class="arrow">→</span> 검증(fact-checker) <span class="arrow">→</span> 팀장이 조립·저장·전달.</div>
+
+  <!-- 스킬 -->
+  <h2><span class="no">03</span> 스킬 5개 <span style="font-size:.8rem;color:var(--muted);font-weight:400">(사용자가 직접 부르는 명령)</span></h2>
+  <div class="grid g2">
+
+    <div class="card">
+      <h3><span class="name">/daily-brief</span> <span class="badge b-orch">오케스트레이터</span></h3>
+      <p class="role">매 거래일 아침 브리핑. 서브에이전트로 ①시장 동향(🇰🇷+🇺🇸) ②관심/보유+유의 종목 ③오늘의 용어를 만들어 <b>fact-checker 검증</b> 후 <span class="mono">stock/briefings/날짜.md</span>에 저장하고, 텔레그램으로 <b>주제별 3개 메시지</b> 발송.</p>
+      <div class="tags"><span class="tag">4개 서브에이전트 호출</span><span class="tag">병렬 실행</span><span class="tag">Telegram 푸시</span></div>
+    </div>
+
+    <div class="card">
+      <h3><span class="name">/stock-check</span></h3>
+      <p class="role">종목 하나의 <b>내 현황</b> — 보유 여부·평단·수량·현재가·수익률·평가손익을 계산해 보여준다. "사라/팔라"는 안 함.</p>
+      <div class="tags"><span class="tag">portfolio-reader 호출</span><span class="tag">tossctl 시세</span></div>
+    </div>
+
+    <div class="card">
+      <h3><span class="name">/portfolio-review</span></h3>
+      <p class="role">보유를 <b>합쳐서</b> 비중·집중도·섹터 쏠림·환노출·현금 비중을 계산 — "내 포트폴리오가 어떤 모양인지"를 설명. 진단이지 처방 아님.</p>
+      <div class="tags"><span class="tag">portfolio-reader 호출</span><span class="tag">tossctl 시세</span></div>
+    </div>
+
+    <div class="card">
+      <h3><span class="name">/stock-explain</span></h3>
+      <p class="role">용어·개념·내 보유 궁금증(공매도·우선주·내 ETF 등)을 <b>주린이 눈높이</b>로 풀어주고 실제 보유와 연결. 배운 용어는 커리큘럼에 조용히 체크.</p>
+      <div class="tags"><span class="tag">curriculum 연동</span><span class="tag">사실형=웹/tossctl</span></div>
+    </div>
+
+    <div class="card">
+      <h3><span class="name">/git-commit</span></h3>
+      <p class="role">변경사항을 정해진 접두사 규칙(feature·fix·docs 등)에 맞춰 커밋. (푸시는 안 함.)</p>
+      <div class="tags"><span class="tag">개발 보조</span></div>
+    </div>
+
+  </div>
+
+  <!-- 에이전트 -->
+  <h2><span class="no">04</span> 서브에이전트 5개 <span style="font-size:.8rem;color:var(--muted);font-weight:400">(스킬이 내부에서 호출)</span></h2>
+  <p class="lead">각자 <b>한 가지 일</b>만. 대부분 <span class="name">/daily-brief</span> 전용이고, <span class="name">portfolio-reader</span>만 여러 스킬이 공유한다.</p>
+  <div class="grid g2">
+
+    <div class="card" style="border-color:rgba(34,201,138,.4)">
+      <h3><span class="name">portfolio-reader</span> <span class="badge b-share">공유</span></h3>
+      <p class="role">보유 원장(<span class="mono">holdings.md</span>)을 읽어 <b>보유 종목·평단(가중평균)·수량·투자원금·현금</b>을 구조화해 반환. 시세·수익률은 계산하지 않음(호출한 스킬의 몫).</p>
+      <div class="tags"><span class="tag tool">Read</span><span class="tag by">🔗 쓰는 스킬: /stock-check · /portfolio-review</span></div>
+    </div>
+
+    <div class="card">
+      <h3><span class="name">stock-news-scraper</span></h3>
+      <p class="role">오늘 시장 동향 — <b>한국+미국</b> 지수·환율(tossctl)과 실제 뉴스 이슈(한 3~5 + 미 2~3)를 제도권 매체에서 수집. 출처는 검증용으로 함께 보관.</p>
+      <div class="tags"><span class="tag tool">Bash</span><span class="tag tool">WebSearch</span><span class="tag tool">WebFetch</span><span class="tag by">🔗 쓰는 스킬: /daily-brief</span></div>
+    </div>
+
+    <div class="card">
+      <h3><span class="name">stock-watcher</span></h3>
+      <p class="role">(a) <b>내 보유</b> 종목의 오늘 변화·이유 + (b) <b>유의 종목</b> 2~3개(미보유). 선정 기준: 내 보유 연관·시장 주도주·학습 사례. <b>매수 추천 아님</b> — "왜 봐야 하는지"만.</p>
+      <div class="tags"><span class="tag tool">Read</span><span class="tag tool">Bash</span><span class="tag tool">WebSearch</span><span class="tag tool">WebFetch</span><span class="tag by">🔗 쓰는 스킬: /daily-brief</span></div>
+    </div>
+
+    <div class="card">
+      <h3><span class="name">stock-term-teacher</span></h3>
+      <p class="role"><span class="mono">curriculum.md</span>의 체크박스를 읽어 <b>아직 안 배운 다음 용어 1개</b>를 골라 쉽게 설명. 진도 체크는 호출한 쪽이 함.</p>
+      <div class="tags"><span class="tag tool">Read</span><span class="tag by">🔗 쓰는 스킬: /daily-brief</span></div>
+    </div>
+
+    <div class="card">
+      <h3><span class="name">fact-checker</span> <span class="badge b-norec">적대적 검증</span></h3>
+      <p class="role">수집된 뉴스·이유를 <b>반증 시도</b>로 검증. 숫자(지수·환율·등락)는 tossctl로 교차확인해 어긋나면 강등·탈락. <span class="mono">verified / uncertain / rejected</span> 판정.</p>
+      <div class="tags"><span class="tag tool">Bash</span><span class="tag tool">WebSearch</span><span class="tag tool">WebFetch</span><span class="tag by">🔗 쓰는 스킬: /daily-brief</span></div>
+    </div>
+
+  </div>
+
+  <!-- daily-brief 파이프라인 -->
+  <h2><span class="no">05</span> <span class="name" style="font-size:1.1rem">/daily-brief</span> 파이프라인</h2>
+  <p class="lead">팀장이 어떻게 일을 쪼개고 합치는지 — 이 OS의 대표 흐름.</p>
+  <div class="flow">
+    <div class="step"><b>준비 &amp; 중복 방지</b><div class="d">오늘 날짜 확정 · 이미 오늘 파일 있으면 재생성 안 함 · 보유(holdings)·다음 용어(curriculum) 파악</div></div>
+    <div class="step"><b>병렬 수집 (팀원 3)</b><div class="d"><span class="name">stock-news-scraper</span> + <span class="name">stock-term-teacher</span> + <span class="name">stock-watcher</span> 를 한 번에 호출</div></div>
+    <div class="step"><b>검증</b><div class="d"><span class="name">fact-checker</span>가 뉴스·숫자를 반증 시도로 확인 → verified만 채택, 미확인은 "(확인필요)"</div></div>
+    <div class="step"><b>조립 &amp; 저장</b><div class="d">초보자 친화 톤으로 합쳐 <span class="mono">stock/briefings/날짜.md</span> 저장 · 배운 용어는 curriculum에 <span class="mono">[x]</span> 체크</div></div>
+    <div class="step"><b>발송 (주제별 3개)</b><div class="d">① 시장 동향 &nbsp;② 관심/보유 &nbsp;③ 오늘의 용어 — <span class="mono">md-to-telegram.sh</span> → <span class="mono">notify-telegram.sh</span></div></div>
+  </div>
+
+  <!-- 안전 & 데이터 -->
+  <h2><span class="no">06</span> 안전장치 &amp; 데이터 정책</h2>
+  <div class="grid g2">
+    <div class="card">
+      <h3>🚫 자동매매 차단 훅</h3>
+      <p class="role"><span class="mono">block-auto-trade.py</span> — <b>PreToolUse</b> 훅. Bash 명령을 검사해 tossctl 실주문(<span class="mono">order place/cancel/amend</span>, <span class="mono">--execute</span>)을 <b>하네스 차원에서 거부</b>. 원칙 1을 기계적으로 강제.</p>
+    </div>
+    <div class="card">
+      <h3>📈 tossctl = 시세 READ 전용</h3>
+      <p class="role">지수·환율·시세 숫자만 tossctl로 조회. 계좌·주문은 안 씀. <b>명령 문법은 <span class="mono">scripts/tossctl-commands.md</span> 한 곳에서 관리</b> — 새 명령은 여기 추가.</p>
+    </div>
+    <div class="card">
+      <h3>🔕 출처 비노출 정책</h3>
+      <p class="role">출처는 <b>내부 검증(fact-check)용으로만</b> 확인하고, 사용자에게 보이는 출력엔 매체명·URL·tossctl을 적지 않는다. 대신 쉽게 풀어 쓰고 미확인은 "(확인필요)".</p>
+    </div>
+    <div class="card">
+      <h3>📒 보유의 단일 출처</h3>
+      <p class="role">보유는 오직 <span class="mono">portfolio/holdings.md</span> 원장. (토스 계좌는 비어 있어 tossctl로 계좌 조회 안 함.) 개인 금융정보라 git에서 제외.</p>
+    </div>
+  </div>
+
+  <footer>
+    이 문서는 사람이 읽기 위한 구성 요약이며, 개인 금융정보(보유·브리핑 내용)는 포함하지 않는다.
+  </footer>
+
+</div>
+</body>
+</html>

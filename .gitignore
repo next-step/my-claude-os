@@ -1,0 +1,23 @@
+# 환경변수 / 시크릿 (계좌 키 등)
+*.env
+.env
+.env.*
+
+# IDE 설정
+.idea/
+
+# ── 개인 금융정보 (public 저장소 노출 금지) ─────────────────────────
+# portfolio/ : 실제 보유 원장(holdings.md)·매매 로그 = 개인 금융정보.
+#   폴더 통째로 무시하되, 폴더 골격(.gitkeep)만 공개.
+portfolio/*
+!portfolio/.gitkeep
+
+# stock/ : 데일리 브리핑(내 보유·관심 종목 노출)·학습 진도.
+#   폴더 통째로 무시하되, 폴더 골격(.gitkeep)만 공개해 구조는 남김.
+stock/*
+!stock/briefings/
+!stock/lessons/
+stock/briefings/*
+!stock/briefings/.gitkeep
+stock/lessons/*
+!stock/lessons/.gitkeep
