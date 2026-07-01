@@ -1,0 +1,16 @@
+{
+  "claim": "샘플 주장 — 아직 실행 전",
+  "updated_at": "2026-07-02",
+  "verdict": "근거 불충분",
+  "confidence": "low",
+  "rationale": "이 파일은 /factcheck 스킬이 web-researcher 찬성/반대 에이전트의 결과와 종합 판정으로 덮어쓰는 데이터 소스의 스키마 견본이다.",
+  "supporting": [
+    { "point": "뒷받침 근거 한 줄", "detail": "맥락 설명 1~2문장.", "source": "매체명" }
+  ],
+  "refuting": [
+    { "point": "반박 근거 한 줄", "detail": "맥락 설명 1~2문장.", "source": "매체명" }
+  ],
+  "sources": [
+    { "name": "출처 예시", "url": "https://example.com" }
+  ]
+}
