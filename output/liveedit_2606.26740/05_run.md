@@ -1,117 +1,71 @@
-# 실행 리포트: LiveEdit — Towards Real-Time Diffusion-Based Streaming Video Editing
+# 실행 준비 리포트: LiveEdit — Real-Time Diffusion-Based Streaming Video Editing
 
-> 본 리포트는 `output/04_code.md`의 핵심 메커니즘을 **토이 입력으로 1-step 동작만** 증명한
-> 최소 재현 데모의 실제 실행 결과입니다. 대규모 학습/추론은 수행하지 않았습니다(스킬 안전 규칙 준수).
+> 이 리포트는 **원본 공식 레포를 사용자가 자기 터미널에서 직접 실행**하도록 준비한 가이드입니다.
+> 클로드는 이 명령들을 대신 실행하지 않았습니다 — 아래 "복붙용 터미널 명령"을 님 터미널에 붙여넣어 실행/관찰하세요.
+> (이전 버전의 `run/run_demo.py`는 원본이 아니라 문서 동작을 재현한 **토이 데모**였습니다. 새 방식에서는 원본 레포 추론이 정본입니다.)
 
-## 환경 (OS / Python / 핵심 패키지 버전)
+## 대상 (원본 레포 / 진입점)
+- **레포**: https://github.com/cp-cp/LiveEdit (공식 · ECCV 2026 · Apache-2.0)
+- **가중치**: 베이스 `Wan-AI/Wan2.1-T2V-1.3B` + 증류 ckpt `cp-cp/LiveEdit`(`ar-forcing_002000.pt`)
+- **진입점**: `bash infer-local-ar-forcing.sh` → `python inference-mm.py --config_path configs/wan_mm-ar-forcing-local.yaml`
+- **효율(마스크 캐시/토큰 프루닝) 경로**: `bash infer-token-pruning.sh`
 
-- **OS**: Windows 10 Education (10.0.19045), native (WSL/Linux 아님)
-- **Python**: 3.10.9 (Anaconda, `C:\Users\wagra\anaconda3\python.exe`)
-- **torch**: 1.12.1 (**CPU only**, `cuda=False`)
-- **numpy**: 1.23.5
-- **사용하지 않은 것**: flash-attn, Wan2.1-T2V-1.3B 가중치, LiveEdit 체크포인트(`ar-forcing_002000.pt`), GPU
-  → 이들은 **전체 LiveEdit 추론**에만 필요하며, 본 데모는 순수 PyTorch CPU 연산만으로 핵심 알고리즘을 재현.
+## 환경 요구 (OS / Python / GPU / 디스크)
+- **OS**: **Linux + NVIDIA GPU** (flash-attn 빌드 필요). Windows는 **WSL2(Ubuntu)** 권장 — 네이티브 Windows는 flash-attn/CUDA 커널 빌드 이슈.
+- **Python**: 3.10, CUDA toolkit 필수(flash-attn 빌드용)
+- **GPU**: 추론은 단일 GPU 가능(논문 학습은 A100×8). 실시간 디코딩 목표 12.66 FPS.
+- **디스크/다운로드**: Wan2.1-T2V-1.3B(수 GB) + ar-forcing_002000.pt. HF 다운로드.
 
-## 재현 명령 (복붙용 한 블록)
+## 복붙용 터미널 명령 (clone → env → weights → run)
+> 아래를 **님의 터미널(Linux/WSL2, NVIDIA GPU)** 에 순서대로 붙여넣어 실행하세요. 클로드는 실행하지 않습니다.
 
-```powershell
-# Windows PowerShell. Anaconda Python 3.10 사용.
-cd C:\Users\wagra\claude\code\output\run
-$env:PYTHONIOENCODING="utf-8"; $env:PYTHONUTF8="1"   # 콘솔 cp949에서 한글/≈ 출력용
-& "C:\Users\wagra\anaconda3\python.exe" run_demo.py
-# (의존성은 이미 설치됨. 새 환경이면: pip install -r requirements.txt)
+```bash
+# 0) 작업 폴더
+cd ~/ && git clone https://github.com/cp-cp/LiveEdit.git && cd LiveEdit
+
+# 1) conda 환경 + 의존성
+conda create -n liveedit python=3.10 -y
+conda activate liveedit
+pip install -r requirements.txt
+pip install flash-attn --no-build-isolation      # CUDA toolkit 필요, 시간 소요
+
+# 2) 가중치 다운로드 (베이스 Wan2.1 + LiveEdit 증류 ckpt)
+huggingface-cli download Wan-AI/Wan2.1-T2V-1.3B \
+  --local-dir-use-symlinks False --local-dir wan_models/Wan2.1-T2V-1.3B
+mkdir -p checkpoints/liveedit
+huggingface-cli download cp-cp/LiveEdit ar-forcing_002000.pt \
+  --local-dir checkpoints/liveedit
+
+# 3) config 경로 치환 — configs/wan_mm-ar-forcing-local.yaml 안의
+#    generator_ckpt → checkpoints/liveedit/ar-forcing_002000.pt
+#    Wan 경로       → wan_models/Wan2.1-T2V-1.3B
+#    (에디터로 열어 <CKPT_FROM_STAGE...>/<YOUR_DATA_PATH>/WANDB_* 플레이스홀더 치환)
+
+# 4) 가장 단순한 추론(마스크 캐시 OFF, 4-step 인과) — 제공 샘플 사용
+bash infer-local-ar-forcing.sh
+#    입력: test_cases/test.mp4 + test_cases/test.json(instruction)
+#    출력: 편집된 비디오
+
+# 5) (선택) 효율 경로 — 마스크 캐시/토큰 프루닝 + 마스크 시각화
+bash infer-token-pruning.sh      # python inference-mm.py --config ... --save_mask
+#    videos/masks 에 편집/정적 마스크 저장 → ~70% 프루닝 거동 확인
 ```
 
-- 실행 파일: `C:/Users/wagra/claude/code/output/run/run_demo.py`
-- 의존성 명세: `C:/Users/wagra/claude/code/output/run/requirements.txt`
-- 총 실행 시간: **약 0.75초** (CPU)
+## 실행하면 보게 될 것 (성공 판정 기준)
+- **4)**: `test.mp4`가 instruction대로 편집된 출력 비디오 생성. 로그에 chunk별(3 latent-frame) 4-step denoise 진행.
+- **성능 관찰**: ~79ms / 3-frame chunk, 약 12.66 FPS 근처(하드웨어 의존).
+- **5) 마스크 시각화**: `videos/masks`의 맵에서 편집 영역(상위 30% keep)과 정적 영역(~70% prune)이 분리되어 보이면 논문의 AR-지향 마스크 캐시가 동작하는 것.
 
-## 실제 실행 로그 (발췌)
+## 흔한 에러 → 해결
+| 증상 | 원인 | 해결 |
+|---|---|---|
+| `flash-attn` 설치 실패 | CUDA toolkit 부재/버전 | CUDA toolkit 설치 후 `--no-build-isolation` 재시도, WSL2 사용 |
+| config 실행 중 경로 에러 | `<CKPT_FROM_STAGE*>` 등 플레이스홀더 미치환 | 3) 단계에서 yaml 내 모든 플레이스홀더 실제 경로로 치환 |
+| CUDA OOM | VRAM 부족 | `num_frames`/해상도 축소, 더 큰 GPU |
+| Windows 네이티브 빌드 실패 | flash-attn | WSL2 Ubuntu에서 실행 |
 
-```
-LiveEdit 최소 재현 데모 (CPU / 토이 입력 / 학습 없음)
-torch=1.12.1, cuda=False
-
-(1) 입력 채널 16->32 확장  (_expand_input_layer)
-old(16ch) 출력 shape         : (1, 8, 4, 4, 4)
-new(32ch) 출력 shape         : (1, 8, 4, 4, 4)
-확장 직후 |old-new| max diff  : 0.000e+00  (≈0 이면 호환 보존 OK)
-source 채널 활성 후 변화 max  : 2.151e+00  (>0 이면 주입 경로 작동)
-PASS: 16->32 확장이 기존 동작 보존 + source 주입 경로 추가
-
-(2) chunk-wise causal attention mask  (_prepare_blockwise_causal_attn_mask)
-총 토큰 L=12, block size=6 (=frame_seqlen*num_frame_per_block), blocks=2
-future-block attention(누설) 수 : 0  (0 이어야 인과성 성립)
-전체 대비 허용 비율            : 75.0% (block 하삼각 구조)
-어텐션 출력 shape             : (1, 12, 8)
-미래 토큰 변경 시 첫 block 변화: 0.000e+00 (≈0 이면 인과 OK)
-PASS: block-wise causal mask가 미래 누설 차단
-
-(3) L2 마스크 캐시 -> 토큰 프루닝  (_compute_mask_from_generated)
-frame당 토큰수=64, keep_num(상위30%)=19
-재계산(편집) 토큰=57, 캐시(정적) 토큰=135, 총=192
-prune 비율=70.3%  (논문 ~70% 목표)
-편집한 좌상단 영역의 keep 비율: 100.0% (편집영역=재계산 분류)
-PASS: L2 중요도 -> 상위30% 재계산 / ~70% 캐시 프루닝
-
-(4) DMD 분포정합 손실  (compute_distribution_matching_loss)
-dmd_loss = 0.773407  (스칼라)
-d(loss)/d(original_latent) norm = 0.013741  (>0: gradient 전파)
-fake==real 일 때 loss = 0.000e+00  (≈0: 분포 일치 시 무손실)
-PASS: (fake-real) 차이를 MSE 형태로 역전파, 분포 일치 시 0
-
-(5) 미니 스트리밍 chunk 루프 (데이터 흐름 모사)
-  chunk 0: 4-step denoise 완료, 적용 prune=0.0%, out shape=(1, 3, 16, 8, 8)
-  chunk 1: 4-step denoise 완료, 적용 prune=70.3%, out shape=(1, 3, 16, 8, 8)
-  chunk 2: 4-step denoise 완료, 적용 prune=70.3%, out shape=(1, 3, 16, 8, 8)
-3 chunk 스트리밍 완료, chunk>=1 평균 prune=70.3%, 소요 1.0ms (CPU 토이)
-PASS: source 주입 -> 마스크 캐시 -> 4-step denoise -> chunk 출력 흐름 작동
-
-ALL DEMOS PASSED
-4개 핵심 메커니즘 + 스트리밍 흐름을 토이 입력으로 검증 완료.
-```
+## 실제 실행 로그 (사용자가 붙여넣을 자리)
+> 아직 미실행. 위 명령을 님 터미널에서 돌린 뒤 출력 로그/생성 비디오 경로/FPS를 붙여주시면 아래 "결과 해석"을 채우겠습니다.
 
 ## 결과 해석 (출력이 논문 동작과 일치하는가)
-
-`04_code.md`가 지목한 4개 핵심 코드 블록을 토이 텐서로 떼어내 재현했고, 모두 논문이 기술한
-거동과 일치하는 정량 결과를 냈다.
-
-| # | 메커니즘 | 04_code.md 근거 | 데모가 증명한 것 | 논문 일치 |
-|---|---|---|---|
-| 1 | 입력 채널 16→32 확장 | 발췌(2) `_expand_input_layer`: `weight[:,:16]` 복사 + 17~32 0초기화 | 확장 직후 출력이 기존 16ch conv와 **완전 동일**(diff=0.0e0) → 초기 안정성 보존, source 채널 활성 시 출력 변화(2.15)로 **주입 경로 작동** | ✅ |
-| 2 | chunk-wise causal mask | 발췌(3) `num_frame_per_block=3`, "현재 chunk 끝까지만 attend" | 미래 block으로의 누설 **0건**, 미래 토큰을 바꿔도 과거 block 출력 **불변(0.0e0)** → 인과성 성립. block 하삼각 구조로 허용 비율 75% | ✅ |
-| 3 | L2 마스크 캐시 / ~70% 프루닝 | 발췌(4) `_compute_mask_from_generated`, `adaptive_patch_ratio=0.3`, `kthvalue` τ | L2² 중요도 상위 30%만 keep → **prune 70.3%** (논문 "~70%"와 일치), 실제 편집 영역(좌상단)이 **100% keep**으로 분류 | ✅ |
-| 4 | DMD 분포정합 손실 | 발췌(1) `grad=(fake-real)` 정규화 후 MSE | 스칼라 손실 + generator latent로 **gradient 전파**(norm>0), `fake==real`이면 손실 **정확히 0** → 분포 일치 시 무손실 | ✅ |
-| 5 | 스트리밍 데이터 흐름 | 3장 chunk 루프 + 4-step denoise `[1000,750,500,250]` | source 주입→직전 chunk 기반 마스크 캐시→4-step denoise→chunk 출력의 전체 파이프라인이 끊김 없이 동작, chunk≥1에서 70.3% 프루닝 적용 | ✅ |
-
-정량적으로 (3) prune 70.3% ≈ 논문 ~70%, (1)·(2)의 0.0e0 동치 검증, (4) 분포 일치 시 손실 0 등은
-모두 알고리즘의 핵심 불변식(invariant)을 그대로 재현한 것이다.
-
-## 알려진 이슈 / 다음 단계 (전체 학습/추론으로 확장하려면)
-
-**본 데모가 증명하지 못하는 것(정직한 한계):**
-- 실제 `test_cases/test.mp4` 영상 편집 결과(품질, 12.66 FPS, 79ms/3-frame chunk 등 성능 수치)는
-  재현하지 않았다. 본 데모는 **알고리즘 메커니즘의 정합성**만 토이 텐서로 검증한 것이지,
-  학습된 가중치를 통한 실제 비디오 편집 출력이 아니다.
-- 데모의 attention/conv는 단순화된 토이 모듈이며 실제 Wan2.1 DiT가 아니다.
-
-**전체 LiveEdit 추론을 돌리려면 갖춰야 할 필요조건:**
-1. **OS/HW**: Linux(또는 WSL2) + NVIDIA GPU. 현재 환경은 Windows native + CPU-only torch라
-   공식 추론(`inference-mm.py`) 실행 불가.
-2. **flash-attn 빌드**: CUDA toolkit 필요. `pip install flash-attn --no-build-isolation`.
-   Windows native에서는 빌드 이슈가 잦아 WSL2/Linux 권장.
-3. **가중치 2종 다운로드**:
-   - 베이스: `Wan-AI/Wan2.1-T2V-1.3B` → `wan_models/Wan2.1-T2V-1.3B`
-   - LiveEdit: `cp-cp/LiveEdit` `ar-forcing_002000.pt` → `checkpoints/liveedit`
-4. **config 치환**: `wan_mm-ar-forcing-local.yaml`의 `generator_ckpt`, Wan 경로,
-   그리고 `<CKPT_FROM_STAGE1/2>`, `<YOUR_DATA_PATH>`, `WANDB_*` 플레이스홀더 치환.
-5. **실행**: `bash infer-local-ar-forcing.sh` (스트리밍 4-step 추론) 또는
-   `bash infer-token-pruning.sh --save_mask` (마스크 캐시/~70% 프루닝 시각화).
-6. **학습 재현(고비용)**: A100급 다중 GPU + Ditto-1M 필터링 20K 쌍(LMDB 변환) →
-   Stage1(`train-mm-bid-diffusion.sh`)→Stage2→Stage3(DMD) 순. 현재 환경에서는 불가.
-
----
-- 데모 디렉토리: `C:/Users/wagra/claude/code/output/run/`
-- 실행 스크립트: `C:/Users/wagra/claude/code/output/run/run_demo.py`
-- 의존성: `C:/Users/wagra/claude/code/output/run/requirements.txt`
-- 출력 경로: `C:/Users/wagra/claude/code/output/05_run.md`
+> 사용자 실측 로그 수령 후 작성. (4-step DMD 추론·chunk 인과 마스크·~70% 토큰 프루닝이 04_code.md 매핑표와 일치하는지, FPS가 논문 12.66과 부합하는지 대조 예정.)
