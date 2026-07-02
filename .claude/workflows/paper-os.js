@@ -4,6 +4,7 @@ export const meta = {
   whenToUse: 'User provides a paper link and wants the full end-to-end paper-analysis pipeline run automatically.',
   phases: [
     { title: 'Triage', detail: 'Fetch the link, measure complexity, decide agent counts + paper slug' },
+    { title: 'Intent', detail: 'Load <slug>/00_intent.md (from /interview) so stages honor user intent' },
     { title: 'Analyze', detail: 'analyzer skill → <slug>/01_analysis.md (gated)' },
     { title: 'Detail', detail: 'detail skill → <slug>/03_detail.md (parallel by concept on complex papers)' },
     { title: 'Code', detail: 'code skill → <slug>/04_code.md (parallel by module on large repos)' },
@@ -85,6 +86,7 @@ const plan = await agent(
 - high → detail_agents=3~5, code_agents=2~4
 detail은 'concepts'(개념 그룹 라벨 배열)로, code는 'modules'(모듈 라벨 배열)로 분할 단위를 제시.
 'slug'은 이 논문의 폴더명으로 쓸 파일시스템 안전 문자열(영문소문자/숫자/._-만, 예: liveedit_2606.26740)로 지어라.
+단, output/ 아래에 이 논문의 00_intent.md 가 이미 있으면(Glob으로 확인) 그 폴더명을 slug으로 그대로 재사용하라(/interview가 만든 의도 파일과 폴더를 일치시키기 위함).
 동시성 상한 ${MAX_PARALLEL}을 넘기지 말 것. 근거를 rationale에 적어라.`,
   { phase: 'Triage', schema: PLAN_SCHEMA, label: 'triage' }
 )
@@ -94,13 +96,20 @@ const SLUG = String(plan.slug || 'paper').replace(/[^a-zA-Z0-9._-]/g, '_').slice
 OUTDIR = `${ROOT}/output/${SLUG}`
 log(`복잡도=${plan.complexity} · detail×${nDetail} · code×${nCode} · 폴더=output/${SLUG} — ${plan.rationale}`)
 
+// ── Phase: Intent — honor the /interview spec if one exists ─────────────────
+// The /interview skill (run interactively BEFORE this workflow) writes
+// output/<slug>/00_intent.md. Stages read it and let it override skill defaults.
+phase('Intent')
+const INTENT = `\n\n[의도 우선] 시작 전 ${P('00_intent.md')} 파일이 있으면 Read로 먼저 읽고, 거기 적힌 대상/실행위치/실행주체/성공기준·해당 단계 지침을 스킬 기본값보다 우선 적용하라. 없으면 스킬 기본값대로 진행.`
+log(`의도 파일(있으면 적용): output/${SLUG}/00_intent.md`)
+
 // ── Phase 2: Analyze (single, gated) ────────────────────────────────────────
 phase('Analyze')
 const analysis = await gated('analysis', P('01_analysis.md'), (fixes) =>
   agent(
     `작업 디렉토리 ${ROOT}. ${SK('analyzer')} 를 Read로 읽고 그 절차를 정확히 따라, 이 논문을 분석해 ${P('01_analysis.md')} 를 Write로 생성하라(상위 폴더 없으면 생성): ${LINK}` +
       (fixes ? `\n이전 피드백 반영: ${fixes.join('; ')}` : '') +
-      `\n끝나면 파일 경로 + 제목 + 한 줄 요약 + 공식 코드 저장소 링크(있으면)를 반환.`,
+      `\n끝나면 파일 경로 + 제목 + 한 줄 요약 + 공식 코드 저장소 링크(있으면)를 반환.` + INTENT,
     { phase: 'Analyze', label: 'analyzer' }
   )
 )
@@ -112,7 +121,7 @@ let detailRun
 if (conceptLabels.length <= 1) {
   detailRun = (fixes) => agent(
     `${ROOT} 에서 ${SK('detail')} 를 읽고 그 절차대로 ${P('01_analysis.md')} 를 풀어 ${P('03_detail.md')} 를 생성하라.` +
-      (fixes ? `\n이전 피드백: ${fixes.join('; ')}` : ''),
+      (fixes ? `\n이전 피드백: ${fixes.join('; ')}` : '') + INTENT,
     { phase: 'Detail', label: 'detail' })
 } else {
   detailRun = async () => {
@@ -132,7 +141,7 @@ let codeRun
 if (moduleLabels.length <= 1) {
   codeRun = (fixes) => agent(
     `${ROOT} 에서 ${SK('code')} 를 읽고 그 절차대로 구현 저장소를 찾아 분석하고 ${P('04_code.md')} 를 생성하라. 논문 분석은 ${P('01_analysis.md')} 참고.` +
-      (fixes ? `\n이전 피드백: ${fixes.join('; ')}` : ''),
+      (fixes ? `\n이전 피드백: ${fixes.join('; ')}` : '') + INTENT,
     { phase: 'Code', label: 'code' })
 } else {
   codeRun = async () => {
@@ -148,8 +157,8 @@ const code = await gated('code', P('04_code.md'), codeRun)
 // ── Phase 5: Run ────────────────────────────────────────────────────────────
 phase('Run')
 const run = await gated('run', P('05_run.md'), (fixes) =>
-  agent(`${ROOT} 에서 ${SK('code-run')} 를 읽고 그 절차대로 ${P('04_code.md')} 기반 최소 재현 데모를 ${OUTDIR}/run/ 에 만들고 실제 실행하여 ${P('05_run.md')} 생성. 토이 입력으로 동작만 증명(대규모 학습 금지). 못 돌리면 사유와 필요조건을 솔직히 기록.` +
-    (fixes ? `\n이전 피드백: ${fixes.join('; ')}` : ''),
+  agent(`${ROOT} 에서 ${SK('code-run')} 를 읽고 그 절차대로 ${P('05_run.md')} 를 생성하라. 기본은 원본 레포를 사용자가 자기 터미널에서 돌릴 복붙 명령 블록+가이드이며, 클로드가 직접 실행하지 않는다(스킬 규칙 준수). 근거는 ${P('04_code.md')}.` +
+    (fixes ? `\n이전 피드백: ${fixes.join('; ')}` : '') + INTENT,
     { phase: 'Run', label: 'code-run' }))
 
 // ── Phase 6: Design ─────────────────────────────────────────────────────────
@@ -162,7 +171,7 @@ const design = await agent(
 phase('Render')
 const html = await gated('html', P('report.html'), (fixes) =>
   agent(`${ROOT} 에서 ${SK('html')} 를 읽고 그 절차대로 ${P('01_analysis.md')}, ${P('03_detail.md')}, ${P('04_code.md')} 와 ${P('design.css')} 를 합쳐 자급식(인라인 CSS) ${P('report.html')} 생성.` +
-    (fixes ? `\n이전 피드백: ${fixes.join('; ')}` : ''),
+    (fixes ? `\n이전 피드백: ${fixes.join('; ')}` : '') + INTENT,
     { phase: 'Render', label: 'html' }))
 
 // ── Summary ─────────────────────────────────────────────────────────────────

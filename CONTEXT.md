@@ -7,6 +7,15 @@
 
 ## 2026-07-02
 
+### interview 스킬 신설 — paper-os 앞단 의도 확정 게이트
+- **무엇을**: 논문 파이프라인 전용 `/interview` 스킬을 추가. 사용자 요청에서 **① 가정 추출 → ② 빈틈 탐지 → ③ 대안 제시(A/B)** 로 의도를 확정하고 `output/<slug>/00_intent.md` 로 저장한다. `paper-os`의 모든 단계가 이 파일을 스킬 기본값보다 우선 읽는다.
+- **왜**: code-run이 의도(원본/재구현·실행 주체·실행 위치)를 앞에서 안 물어 어긋난 사고를 **시작 시점에** 잡기 위함. 인터뷰 결과를 대화가 아니라 파일로 남겨 의도가 증발하지 않게 함. 스코프는 요청대로 **paper-os 전용**.
+- **설계 메모**: 인터뷰는 대화형(AskUserQuestion)이라 백그라운드 워크플로우 안에서 못 돌린다 → paper-os **실행 전** 메인 대화에서 단독 실행하고, 워크플로우는 그 산출 파일만 소비.
+- **어떻게(파일)**:
+  - `.claude/skills/interview/SKILL.md` — 신설(세 동작 루프·정지조건 2라운드·숨은변수 체크리스트·00_intent.md 출력 스키마).
+  - `.claude/agents/interview-agent.md` — 신설(대화형, AskUserQuestion 보유).
+  - `.claude/workflows/paper-os.js` — `Intent` phase 추가, `INTENT` 프리앰블을 analyzer/detail/code/code-run/html 프롬프트에 주입, Triage가 기존 00_intent.md 폴더 slug 재사용. **부수 수정**: code-run 단계 프롬프트가 옛 "토이 데모 자동실행"으로 남아 있던 것을 새 스킬(원본·사용자 실행)에 맞게 정정.
+
 ### code-run 스킬의 실행 철학 전환 — "재구현 자동실행" → "원본 레포, 사용자 터미널 실행"
 - **무엇을**: `/code-run`(코드실행) 단계의 기본 동작을 바꿨다.
   - 이전: 04_code.md 문서 동작을 **재구현한 토이 데모**를 만들고 **클로드가 자기 샌드박스에서 자동 실행**해 로그를 캡처.
